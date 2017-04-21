@@ -3,41 +3,65 @@ Google Assistant API Sample for Android Things
 
 This sample shows how to call the Google Assistant API from Android Things.
 
-It streams an audio file containing a pre-recorded spoken request ("what time is it?")
-located in the app [resource](app/src/main/res/raw) and writes the Assistant's spoken response
-to a temporary audio file.
+It records a spoken request from I2S microphones and plays back Assistant's spoken response
+on speakers connected to an I2S DAC.
 
 Pre-requisites
 --------------
 
-- Android Things compatible board
+- Raspberry Pi 3
+- AIYProjects VoiceHAT and cardboard kit
 - Android Studio 2.2+
-- [Google API Console Project](https://console.developers.google.com) w/ Embedded Assistant API [enabled](https://console.developers.google.com/apis).
-- [OAuth client ID](https://console.developers.google.com/apis/credentials) with application type `Other`.
+- [Google API Console Project][console]
+  with Google Assistant API [enabled][console-apis].
+- [OAuth client ID][console-credentials]
+  with application type `Other`
+- Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with i2s enabled.
+  - mount the sdcard image
 
-Build and install
------------------
+        # replace sdb1 with the sdcard reader device.
+        mount /dev/sdb1 /mnt/disk
 
-- Edit `Credentials.json` and add valid OAuth2 credentials for both the application *and* the end user:
-    - From the [OAuth client ID](https://developers.google.com/identity/protocols/OAuth2InstalledApp) `client_secret_NNNN.json` file of the application extract:
-        - `CLIENT_ID`
-        - `CLIENT_SECRET`
-	- Using the [`oauth2l token`](https://github.com/google/oauth2l/tree/master/go/oauth2client) command line tool generate:
-        - `REFRESH_TOKEN`
+  - edit `config.txt`
+
+        # comment or remove this line:
+        # dtoverlay=pwm-2chan-with-clk,pin=18,func=2,pin2=13,func2=4
+        #
+        # uncomment or add this line:
+        dtoverlay=generic-i2s
+
+  - umount the sdcard image
+
+        sync
+        umount /mnt/disk
+
+Run the sample
+--------------
+
+- Get the `client_secret_NNNN.json`
+  [OAuth client ID][oauth2-installed-app] JSON file for the application from
+  [Google Developer Console credentials section][console-credentials]
+- Using the [`oauth2l`][oauth2l]
+  command line tool generate a `REFRESH_TOKEN`
+
+         oauth2l --json client_secret_NNNN.json token \
+            https://www.googleapis.com/auth/assistant-sdk-prototype
+
+- Edit `Credentials.java`:
+  - From the `client_secret_NNNN.json` file copy:
+    - `CLIENT_ID`
+    - `CLIENT_SECRET`
+  - From the [`oauth2l token`][oauth2l] command line tool output copy:
+    - `REFRESH_TOKEN`
 - On Android Studio, click on the "Run" button or on the command line, type:
 ```bash
 ./gradlew installDebug
 adb shell am start com.example.androidthings.assistant/.AssistantActivity
 ```
-- The sample should prints the path of the assistant answer to `logcat`.
-```
-assistant response file: /data/user/0/com.example.androidthings.assistant/cache/assistant-out-NN.raw
-```
-- Retrieve the audio file and play it with the following commands:
-```bash
-adb pull /data/user/0/com.example.androidthings.assistant/cache/assistant-out-*.raw
-aplay assistant-out-*.raw
-```
+- Press the button: recording starts.
+- Ask a question in the microphone.
+- Release the button: recording stops.
+- The Google Assistant answer should playback on the speaker.
 
 License
 -------
@@ -58,3 +82,10 @@ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
 License for the specific language governing permissions and limitations under
 the License.
+
+[console]: https://console.developers.google.com
+[console-apis]: https://console.developers.google.com/apis
+[console-credentials]: https://console.developers.google.com/apis/credentials
+[oauth2-installed-app]: https://developers.google.com/identity/protocols/OAuth2InstalledApp
+[oauth2l]: https://github.com/google/oauth2l/tree/master/go/oauth2client
+[dev-preview-download]: https://developer.android.com/things/preview/download.html

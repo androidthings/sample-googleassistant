@@ -27,6 +27,9 @@ android {
         targetSdkVersion 24
         versionCode 1
         versionName "1.0"
+        jackOptions {
+            enabled true
+        }
     }
     buildTypes {
         release {
@@ -34,7 +37,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
+
 
 protobuf {
     protoc {
@@ -62,7 +71,7 @@ protobuf {
 }
 
 dependencies {
-    provided 'com.google.android.things:androidthings:0.3-devpreview'
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'io.grpc:grpc-okhttp:1.2.0'
     compile 'io.grpc:grpc-protobuf-lite:1.2.0'
     compile 'io.grpc:grpc-stub:1.2.0'
@@ -71,4 +80,5 @@ dependencies {
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
     compile 'javax.annotation:javax.annotation-api:1.2'
+    compile 'com.google.android.things.contrib:driver-button:0.2'
 }
