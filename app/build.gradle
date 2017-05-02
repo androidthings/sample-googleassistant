@@ -71,7 +71,8 @@ protobuf {
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    provided 'com.google.android.things:androidthings:0.3.1-devpreview'
+
     compile 'io.grpc:grpc-okhttp:1.2.0'
     compile 'io.grpc:grpc-protobuf-lite:1.2.0'
     compile 'io.grpc:grpc-stub:1.2.0'
