@@ -91,5 +91,5 @@ the License.
 [console-credentials]: https://console.developers.google.com/apis/credentials
 [oauth2-installed-app]: https://developers.google.com/identity/protocols/OAuth2InstalledApp
 [oauth2l]: https://github.com/google/oauth2l/tree/master/go/oauth2client
-[dev-preview-download]: https://developer.android.com/things/preview/download.html
+[dev-preview-download]: https://dl.google.com/dl/androidthings/rpi3/devpreview/3.1/androidthings_rpi3_devpreview_3_1.zip
 [activity-controls]: https://myaccount.google.com/activitycontrols
