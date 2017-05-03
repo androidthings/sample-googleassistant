@@ -9,14 +9,10 @@ on speakers connected to an I2S DAC.
 Pre-requisites
 --------------
 
-- Raspberry Pi 3
-- AIYProjects VoiceHAT and cardboard kit
 - Android Studio 2.2+
-- [Google API Console Project][console]
-  with Google Assistant API [enabled][console-apis].
-- [OAuth client ID][console-credentials]
-  with application type `Other`
-- Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with i2s enabled.
+- Raspberry Pi 3
+- I2S microphone and speaker.
+- Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with I2S enabled.
   - mount the sdcard image
 
         # replace sdb1 with the sdcard reader device.
@@ -34,6 +30,13 @@ Pre-requisites
 
         sync
         umount /mnt/disk
+- [Google API Console Project][console] with Google Assistant API [enabled][console-apis].
+- [OAuth client ID][console-credentials] with application type `Other`
+- Google Account with the following [activity controls][activity-controls] enabled
+  - Web & App Activity
+  - Location History
+  - Device Information
+  - Voice & Audio Activity
 
 Run the sample
 --------------
@@ -89,3 +92,4 @@ the License.
 [oauth2-installed-app]: https://developers.google.com/identity/protocols/OAuth2InstalledApp
 [oauth2l]: https://github.com/google/oauth2l/tree/master/go/oauth2client
 [dev-preview-download]: https://developer.android.com/things/preview/download.html
+[activity-controls]: https://myaccount.google.com/activitycontrols
