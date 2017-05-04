@@ -11,7 +11,7 @@ Pre-requisites
 
 - Android Studio 2.2+
 - Raspberry Pi 3
-- I2S microphone and speaker.
+- Assembled [AIY Projects Voice Kit](https://www.raspberrypi.org/blog/free-aiy-projects-voice-kit-magpi-57/)
 - Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with I2S enabled.
   - mount the sdcard image
 
