@@ -1,17 +1,16 @@
 Google Assistant API Sample for Android Things
 ==============================================
 
-This sample shows how to call the Google Assistant API from Android Things.
+This sample shows how to call the Google Assistant API from Android Things using the [AIY Projects Voice Kit][voice-kit].
 
-It records a spoken request from I2S microphones and plays back Assistant's spoken response
-on speakers connected to an I2S DAC.
+It records a spoken request from the I2S microphones, send it to the Google Assistant API and plays back Assistant's spoken response on the speaker connected to the I2S DAC.
 
 Pre-requisites
 --------------
 
 - Android Studio 2.2+
 - Raspberry Pi 3
-- Assembled [AIY Projects Voice Kit](https://www.raspberrypi.org/blog/free-aiy-projects-voice-kit-magpi-57/)
+- Assembled [AIY Projects Voice Kit][voice-kit]
 - Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with I2S enabled.
   - mount the sdcard image
 
@@ -86,6 +85,7 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
 License for the specific language governing permissions and limitations under
 the License.
 
+[voice-kit]: https://aiyprojects.withgoogle.com/voice/
 [console]: https://console.developers.google.com
 [console-apis]: https://console.developers.google.com/apis
 [console-credentials]: https://console.developers.google.com/apis/credentials
