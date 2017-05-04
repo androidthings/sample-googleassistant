@@ -10,7 +10,7 @@ Pre-requisites
 
 - Android Studio 2.2+
 - Raspberry Pi 3
-- Assembled [AIY Projects Voice Kit](https://aiyprojects.withgoogle.com/voice/)
+- Assembled [AIY Projects Voice Kit][voice-kit]
 - Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with I2S enabled.
   - mount the sdcard image
 
