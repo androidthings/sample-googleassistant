@@ -1,4 +1,4 @@
-Google Assistant API Sample for the AIY Projects Voice Kit
+Google Assistant API Sample for AIY Projects Voice Kit
 ==========================================================
 
 This sample shows how to call the Google Assistant API from Android Things using the [AIY Projects Voice Kit][voice-kit].
