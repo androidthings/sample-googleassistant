@@ -46,7 +46,7 @@ Run the sample
 - Using the [`oauth2l`][oauth2l]
   command line tool generate a `REFRESH_TOKEN`
 
-         oauth2l --json client_secret_NNNN.json token \
+         oauth2l fetch --json client_secret_NNNN.json \
             https://www.googleapis.com/auth/assistant-sdk-prototype
 
 - Edit `Credentials.java`:
