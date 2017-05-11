@@ -40,12 +40,14 @@ import com.google.assistant.embedded.v1alpha1.ConverseConfig;
 import com.google.assistant.embedded.v1alpha1.ConverseRequest;
 import com.google.assistant.embedded.v1alpha1.ConverseResponse;
 import com.google.assistant.embedded.v1alpha1.EmbeddedAssistantGrpc;
-import com.google.auth.oauth2.UserCredentials;
 import com.google.protobuf.ByteString;
+
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -55,11 +57,8 @@ import io.grpc.stub.StreamObserver;
 public class AssistantActivity extends Activity implements Button.OnButtonEventListener {
     private static final String TAG = AssistantActivity.class.getSimpleName();
 
-    // Peripheral constants.
-    private static final String I2S_BUS = "I2S1";
-    private static final String DAC_TRIGGER_GPIO = "BCM16";
-    private static final String BUTTON_PIN = "BCM23";
-    private static final String LED_PIN = "BCM25";
+    // Peripheral and drivers constants.
+    private static final boolean AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE = true;
     private static final int BUTTON_DEBOUNCE_DELAY_MS = 20;
 
     // Audio constants.
@@ -99,11 +98,6 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
     // Google Assistant API constants.
     private static final String ASSISTANT_ENDPOINT = "embeddedassistant.googleapis.com";
-    private static final UserCredentials ASSISTANT_CREDENTIALS = new UserCredentials(
-            Credentials.CLIENT_ID,
-            Credentials.CLIENT_SECRET,
-            Credentials.REFRESH_TOKEN
-    );
 
     // gRPC client and stream observers.
     private EmbeddedAssistantGrpc.EmbeddedAssistantStub mAssistantService;
@@ -230,7 +224,8 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate");
+        Log.d(TAG, "Starting Assistant demo");
+
         setContentView(R.layout.activity_main);
         ListView assistantRequestsListView = (ListView)findViewById(R.id.assistantRequestsListView);
         mAssistantRequestsAdapter =
@@ -244,18 +239,32 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         mAssistantHandler = new Handler(mAssistantThread.getLooper());
 
         try {
-            Log.d(TAG, "creating voice hat driver");
-            mVoiceHat = new VoiceHatDriver(I2S_BUS, DAC_TRIGGER_GPIO, AUDIO_FORMAT_STEREO);
-            mVoiceHat.registerAudioInputDriver();
-            mVoiceHat.registerAudioOutputDriver();
-            mButton = new Button(BUTTON_PIN, Button.LogicState.PRESSED_WHEN_LOW);
+            if (AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE) {
+                PeripheralManagerService pioService = new PeripheralManagerService();
+                List<String> i2sDevices = pioService.getI2sDeviceList();
+                if (i2sDevices.size() > 0) {
+                    try {
+                        Log.d(TAG, "creating voice hat driver");
+                        mVoiceHat = new VoiceHatDriver(
+                                BoardDefaults.getI2SDeviceForVoiceHat(),
+                                BoardDefaults.getGPIOForVoiceHatTrigger(),
+                                AUDIO_FORMAT_STEREO
+                        );
+                        mVoiceHat.registerAudioInputDriver();
+                        mVoiceHat.registerAudioOutputDriver();
+                    } catch (IllegalStateException e) {
+                        Log.e(TAG, "Unsupported board, falling back on default audio device:", e);
+                    }
+                }
+            }
+            mButton = new Button(BoardDefaults.getGPIOForButton(), Button.LogicState.PRESSED_WHEN_LOW);
             mButton.setDebounceDelay(BUTTON_DEBOUNCE_DELAY_MS);
             mButton.setOnButtonEventListener(this);
             PeripheralManagerService pioService = new PeripheralManagerService();
-            mLed = pioService.openGpio(LED_PIN);
+            mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
             mLed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
         } catch (IOException e) {
-            Log.d(TAG, "error creating voice hat driver:", e);
+            Log.d(TAG, "error configuring peripherals:", e);
             return;
         }
 
@@ -281,8 +290,14 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 .build();
 
         ManagedChannel channel = ManagedChannelBuilder.forTarget(ASSISTANT_ENDPOINT).build();
-        mAssistantService = EmbeddedAssistantGrpc.newStub(channel)
-                        .withCallCredentials(MoreCallCredentials.from(ASSISTANT_CREDENTIALS));
+        try {
+            mAssistantService = EmbeddedAssistantGrpc.newStub(channel)
+                    .withCallCredentials(MoreCallCredentials.from(
+                            Credentials.fromResource(this, R.raw.credentials)
+                    ));
+        } catch (IOException|JSONException e) {
+            Log.e(TAG, "error creating assistant service:", e);
+        }
     }
 
     @Override
