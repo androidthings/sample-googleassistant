@@ -16,8 +16,27 @@
 
 package com.example.androidthings.assistant;
 
+import android.content.Context;
+
+import com.google.auth.oauth2.UserCredentials;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+
 class Credentials {
-    static final String CLIENT_ID = "";
-    static final String CLIENT_SECRET = "";
-    static final String REFRESH_TOKEN = "";
+    static UserCredentials fromResource(Context context, int resourceId)
+            throws IOException, JSONException {
+        InputStream is = context.getResources().openRawResource(resourceId);
+        byte[] bytes = new byte[is.available()];
+        is.read(bytes);
+        JSONObject json = new JSONObject(new String(bytes, "UTF-8"));
+        return new UserCredentials(
+                json.getString("client_id"),
+                json.getString("client_secret"),
+                json.getString("refresh_token")
+        );
+    }
 }
