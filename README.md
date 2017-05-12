@@ -1,15 +1,15 @@
 Google Assistant API Sample for Android Things
 ==============================================
 
-This sample shows how to call the Google Assistant API from Android Thing.
+This sample shows how to call the Google Assistant API from Android Things.
 
-It records a spoken request from the connected microphones, send it to the Google Assistant API and plays back Assistant's spoken response on the connected speaker.
+It records a spoken request from the connected microphones, sends it to the Google Assistant API and plays back the Assistant's spoken response on the connected speaker.
 
 Pre-requisites
 --------------
 
-- Android Studio 2.2+
-- Android Things compatible board
+- Android Studio 2.2+.
+- Android Things compatible board.
 - If using [AIY Projects Voice Kit][voice-kit]:
     - Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with I2S enabled.
         - mount the sdcard image
@@ -29,22 +29,15 @@ Pre-requisites
 
               sync
               umount /mnt/disk
-- If using Android Things supported [microphone][mic] and [speaker][speaker]:
+- If using Android Things: supported [microphone][mic] and [speaker][speaker].
     - set `AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE = false` in `AssistantActivity.java`
-- [Google API Console Project][console] with Google Assistant API [enabled][console-apis].
-- [OAuth client ID][console-credentials] with application type `Other`
-- Google Account with the following [activity controls][activity-controls] enabled
-  - Web & App Activity
-  - Location History
-  - Device Information
-  - Voice & Audio Activity
+- [Google API Console Project][console].
 
 Run the sample
 --------------
 
-- Get the `client_secret_NNNN.json`
-  [OAuth client ID][oauth2-installed-app] JSON file for the application from
-  [Google Developer Console credentials section][console-credentials].
+- Configure the Google API Console Project to use the [Google Assistant API][google-assistant-api-config].
+- Download the `client_secret_NNNN.json` file from the [credentials section of the Console][console-credentials].
 - Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate credentials:
 ```
 pip install google-auth-oauthlib[tool]
@@ -53,16 +46,24 @@ google-oauthlib-tool --client-secrets client_secret_NNNN.json \
                      --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
                      --save
 ```
+- Make sure to set the [Activity Controls][set-activity-controls] for the Google Account using the application.
+- On the first install, grant the sample required permissions for audio and internet access:
+```
+bash
+./gradlew assembleDebug
+adb install -g app/build/outputs/apk/app-debug.apk
+```
 - On Android Studio, click on the "Run" button or on the command line, type:
 ```bash
 ./gradlew installDebug
 adb shell am start com.example.androidthings.assistant/.AssistantActivity
 ```
-- Reboot your device to grant the `AUDIO_RECORD` permission.
-- Press the button: recording starts.
-- Ask a question in the microphone.
-- Release the button: recording stops.
-- The Google Assistant answer should playback on the speaker.
+- Try the assistant demo:
+
+  - Press the button: recording starts.
+  - Ask a question in the microphone.
+  - Release the button: recording stops.
+  - The Google Assistant answer should playback on the speaker.
 
 License
 -------
@@ -86,11 +87,10 @@ the License.
 
 [voice-kit]: https://aiyprojects.withgoogle.com/voice/
 [console]: https://console.developers.google.com
-[console-apis]: https://console.developers.google.com/apis
+[google-assistant-api-config]: https://developers.google.com/assistant/sdk/prototype/getting-started-other-platforms/config-dev-project-and-account
 [console-credentials]: https://console.developers.google.com/apis/credentials
-[oauth2-installed-app]: https://developers.google.com/identity/protocols/OAuth2InstalledApp
 [google-oauthlib-tool]: https://github.com/GoogleCloudPlatform/google-auth-library-python-oauthlib
 [dev-preview-download]: https://dl.google.com/dl/androidthings/rpi3/devpreview/3.1/androidthings_rpi3_devpreview_3_1.zip
-[activity-controls]: https://myaccount.google.com/activitycontrols
+[set-activity-controls]: https://developers.google.com/assistant/sdk/prototype/getting-started-other-platforms/config-dev-project-and-account#set-activity-controls
 [mic]: https://www.adafruit.com/product/3367
 [speaker]: https://www.adafruit.com/product/3369

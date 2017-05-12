@@ -131,7 +131,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                         try {
                             mLed.setValue(!mLed.getValue());
                         } catch (IOException e) {
-                            Log.e(TAG, "error toggling LED:", e);
+                            Log.w(TAG, "error toggling LED:", e);
                         }
                     }
                     break;
@@ -224,7 +224,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "Starting Assistant demo");
+        Log.i(TAG, "starting assistant demo");
 
         setContentView(R.layout.activity_main);
         ListView assistantRequestsListView = (ListView)findViewById(R.id.assistantRequestsListView);
@@ -244,7 +244,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 List<String> i2sDevices = pioService.getI2sDeviceList();
                 if (i2sDevices.size() > 0) {
                     try {
-                        Log.d(TAG, "creating voice hat driver");
+                        Log.i(TAG, "creating voice hat driver");
                         mVoiceHat = new VoiceHatDriver(
                                 BoardDefaults.getI2SDeviceForVoiceHat(),
                                 BoardDefaults.getGPIOForVoiceHatTrigger(),
@@ -253,7 +253,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                         mVoiceHat.registerAudioInputDriver();
                         mVoiceHat.registerAudioOutputDriver();
                     } catch (IllegalStateException e) {
-                        Log.e(TAG, "Unsupported board, falling back on default audio device:", e);
+                        Log.w(TAG, "Unsupported board, falling back on default audio device:", e);
                     }
                 }
             }
@@ -264,13 +264,13 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
             mLed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
         } catch (IOException e) {
-            Log.d(TAG, "error configuring peripherals:", e);
+            Log.e(TAG, "error configuring peripherals:", e);
             return;
         }
 
         AudioManager manager = (AudioManager)this.getSystemService(Context.AUDIO_SERVICE);
         int maxVolume = manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        Log.d(TAG, "setting volume to: " + maxVolume);
+        Log.i(TAG, "setting volume to: " + maxVolume);
         manager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0);
         int outputBufferSize = AudioTrack.getMinBufferSize(AUDIO_FORMAT_OUT_MONO.getSampleRate(),
                 AUDIO_FORMAT_OUT_MONO.getChannelMask(),
@@ -319,7 +319,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestroy");
+        Log.i(TAG, "destroying assistant demo");
         if (mAudioRecord != null) {
             mAudioRecord.stop();
             mAudioRecord = null;
@@ -332,7 +332,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             try {
                 mLed.close();
             } catch (IOException e) {
-                Log.d(TAG, "error closing LED", e);
+                Log.w(TAG, "error closing LED", e);
             }
             mLed = null;
         }
@@ -340,7 +340,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             try {
                 mButton.close();
             } catch (IOException e) {
-                Log.d(TAG, "error closing button", e);
+                Log.w(TAG, "error closing button", e);
             }
             mButton = null;
         }
@@ -350,7 +350,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 mVoiceHat.unregisterAudioInputDriver();
                 mVoiceHat.close();
             } catch (IOException e) {
-                Log.d(TAG, "error closing voice hat driver", e);
+                Log.w(TAG, "error closing voice hat driver", e);
             }
             mVoiceHat = null;
         }
