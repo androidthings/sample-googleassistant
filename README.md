@@ -13,9 +13,17 @@ Pre-requisites
 - If using [AIY Projects Voice Kit][voice-kit]:
     - Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with I2S enabled.
         - mount the sdcard image
+        
+              Linux:
 
               # replace sdb1 with the sdcard reader device.
               mount /dev/sdb1 /mnt/disk
+
+              Mac:
+        
+              # replace disk2s1 with the sdcard reader device.
+              mount -t msdos /dev/disk2s1 /mnt/disk
+
 
         - edit `config.txt`
 
