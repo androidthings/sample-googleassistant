@@ -48,8 +48,7 @@ google-oauthlib-tool --client-secrets client_secret_NNNN.json \
 ```
 - Make sure to set the [Activity Controls][set-activity-controls] for the Google Account using the application.
 - On the first install, grant the sample required permissions for audio and internet access:
-```
-bash
+```bash
 ./gradlew assembleDebug
 adb install -g app/build/outputs/apk/app-debug.apk
 ```
