@@ -17,7 +17,6 @@ Pre-requisites
               # replace sdb1 with the sdcard reader device.
               mount -t msdos /dev/sdb1 /mnt/disk
 
-
         - edit `config.txt`
 
               # comment or remove this line:
