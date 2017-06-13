@@ -30,6 +30,7 @@ public class BoardDefaults {
     private static final String DEVICE_RPI3 = "rpi3";
     private static final String DEVICE_PICO = "imx6ul_pico";
     private static final String DEVICE_VVDN = "imx6ul_iopb";
+    private static final String DEVICE_IMX7D_PICO = "imx7d_pico";
     private static String sBoardVariant = "";
 
     /**
@@ -49,6 +50,8 @@ public class BoardDefaults {
                 return "BCM25";
             case DEVICE_PICO:
                 return "GPIO4_IO21";
+            case DEVICE_IMX7D_PICO:
+                return "GPIO_34";
             case DEVICE_VVDN:
                 return "GPIO3_IO06";
             default:
@@ -71,6 +74,8 @@ public class BoardDefaults {
                 return "BCM23";
             case DEVICE_PICO:
                 return "GPIO4_IO20";
+            case DEVICE_IMX7D_PICO:
+                return "GPIO_174";
             case DEVICE_VVDN:
                 return "GPIO3_IO01";
             default:
