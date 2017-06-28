@@ -112,6 +112,12 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     break;
                 case RESULT:
                     final String spokenRequestText = value.getResult().getSpokenRequestText();
+                    if (value.getResult().getVolumePercentage() != 0) {
+                        mVolumePercentage = value.getResult().getVolumePercentage();
+                        Log.i(TAG, "assistant volume changed: " + mVolumePercentage);
+                        mAudioTrack.setVolume(mAudioTrack.getMaxVolume() *
+                            mVolumePercentage / 100.0f);
+                    }
                     if (!spokenRequestText.isEmpty()) {
                         Log.i(TAG, "assistant request text: " + spokenRequestText);
                         mMainHandler.post(new Runnable() {
@@ -162,6 +168,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     // Audio playback and recording objects.
     private AudioTrack mAudioTrack;
     private AudioRecord mAudioRecord;
+    private int mVolumePercentage = 100;
 
     // Hardware peripherals.
     private VoiceHatDriver mVoiceHat;
