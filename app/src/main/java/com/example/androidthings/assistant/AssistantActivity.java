@@ -18,6 +18,7 @@ package com.example.androidthings.assistant;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -26,6 +27,7 @@ import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -62,6 +64,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private static final int BUTTON_DEBOUNCE_DELAY_MS = 20;
 
     // Audio constants.
+    private static final String PREF_CURRENT_VOLUME = "current_volume";
     private static final int SAMPLE_RATE = 16000;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static AudioInConfig.Encoding ENCODING_INPUT = AudioInConfig.Encoding.LINEAR16;
@@ -115,8 +118,14 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     if (value.getResult().getVolumePercentage() != 0) {
                         mVolumePercentage = value.getResult().getVolumePercentage();
                         Log.i(TAG, "assistant volume changed: " + mVolumePercentage);
-                        mAudioTrack.setVolume(mAudioTrack.getMaxVolume() *
-                            mVolumePercentage / 100.0f);
+                        float newVolume = mAudioTrack.getMaxVolume() * mVolumePercentage / 100.0f;
+                        mAudioTrack.setVolume(newVolume);
+                        // Update our shared preferences
+                        SharedPreferences.Editor editor =
+                            PreferenceManager.getDefaultSharedPreferences(AssistantActivity.this)
+                              .edit();
+                        editor.putFloat(PREF_CURRENT_VOLUME, newVolume);
+                        editor.apply();
                     }
                     if (!spokenRequestText.isEmpty()) {
                         Log.i(TAG, "assistant request text: " + spokenRequestText);
@@ -286,6 +295,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 .setAudioFormat(AUDIO_FORMAT_OUT_MONO)
                 .setBufferSizeInBytes(outputBufferSize)
                 .build();
+        // Set volume from SharedPreferences
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        mAudioTrack.setVolume(preferences.getFloat(PREF_CURRENT_VOLUME, maxVolume));
         mAudioTrack.play();
         int inputBufferSize = AudioRecord.getMinBufferSize(AUDIO_FORMAT_STEREO.getSampleRate(),
                 AUDIO_FORMAT_STEREO.getChannelMask(),
