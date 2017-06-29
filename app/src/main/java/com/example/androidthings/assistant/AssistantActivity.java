@@ -74,11 +74,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                          .setEncoding(ENCODING_INPUT)
                          .setSampleRateHertz(SAMPLE_RATE)
                          .build();
-    private static final AudioOutConfig ASSISTANT_AUDIO_RESPONSE_CONFIG =
-            AudioOutConfig.newBuilder()
-                    .setEncoding(ENCODING_OUTPUT)
-                    .setSampleRateHertz(SAMPLE_RATE)
-                    .build();
+    private static AudioOutConfig ASSISTANT_AUDIO_RESPONSE_CONFIG;
     private static final AudioFormat AUDIO_FORMAT_STEREO =
             new AudioFormat.Builder()
             .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
@@ -286,7 +282,6 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
         AudioManager manager = (AudioManager)this.getSystemService(Context.AUDIO_SERVICE);
         int maxVolume = manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        Log.i(TAG, "setting volume to: " + maxVolume);
         manager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0);
         int outputBufferSize = AudioTrack.getMinBufferSize(AUDIO_FORMAT_OUT_MONO.getSampleRate(),
                 AUDIO_FORMAT_OUT_MONO.getChannelMask(),
@@ -297,8 +292,17 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 .build();
         // Set volume from SharedPreferences
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        mAudioTrack.setVolume(preferences.getFloat(PREF_CURRENT_VOLUME, maxVolume));
+        float initVolume = preferences.getFloat(PREF_CURRENT_VOLUME, maxVolume);
+        Log.i(TAG, "setting volume to: " + initVolume);
+        mAudioTrack.setVolume(initVolume);
+        ASSISTANT_AUDIO_RESPONSE_CONFIG = AudioOutConfig.newBuilder()
+                .setEncoding(ENCODING_OUTPUT)
+                .setSampleRateHertz(SAMPLE_RATE)
+                .setVolumePercentage(Math.round(initVolume))
+                .build();
         mAudioTrack.play();
+
+
         int inputBufferSize = AudioRecord.getMinBufferSize(AUDIO_FORMAT_STEREO.getSampleRate(),
                 AUDIO_FORMAT_STEREO.getChannelMask(),
                 AUDIO_FORMAT_STEREO.getEncoding());
