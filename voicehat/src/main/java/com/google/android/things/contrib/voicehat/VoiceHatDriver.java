@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.androidthings.assistant;
+package com.google.android.things.contrib.voicehat;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.util.Log;

@@ -45,6 +45,7 @@ android {
 
 dependencies {
     compile project(':grpc')
+    compile project(':voicehat')
     provided 'com.google.android.things:androidthings:0.3.1-devpreview'
 
     compile('com.google.auth:google-auth-library-oauth2-http:0.6.0') {

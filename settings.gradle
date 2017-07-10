@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-include ':app', ':grpc'
+include ':app', ':grpc', ':voicehat'

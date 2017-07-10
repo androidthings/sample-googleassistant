@@ -33,6 +33,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.google.android.things.contrib.driver.button.Button;
+import com.google.android.things.contrib.voicehat.VoiceHatDriver;
 import com.google.android.things.pio.Gpio;
 
 import com.google.android.things.pio.PeripheralManagerService;
