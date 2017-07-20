@@ -64,36 +64,39 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     // Audio constants.
     private static final int SAMPLE_RATE = 16000;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    private static final int DEFAULT_VOLUME = 100;
+
     private static AudioInConfig.Encoding ENCODING_INPUT = AudioInConfig.Encoding.LINEAR16;
     private static AudioOutConfig.Encoding ENCODING_OUTPUT = AudioOutConfig.Encoding.LINEAR16;
     private static final AudioInConfig ASSISTANT_AUDIO_REQUEST_CONFIG =
             AudioInConfig.newBuilder()
-                         .setEncoding(ENCODING_INPUT)
-                         .setSampleRateHertz(SAMPLE_RATE)
-                         .build();
+                     .setEncoding(ENCODING_INPUT)
+                     .setSampleRateHertz(SAMPLE_RATE)
+                     .build();
     private static final AudioOutConfig ASSISTANT_AUDIO_RESPONSE_CONFIG =
             AudioOutConfig.newBuilder()
                     .setEncoding(ENCODING_OUTPUT)
                     .setSampleRateHertz(SAMPLE_RATE)
+                    .setVolumePercentage(DEFAULT_VOLUME)
                     .build();
     private static final AudioFormat AUDIO_FORMAT_STEREO =
             new AudioFormat.Builder()
-            .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
-            .setEncoding(ENCODING)
-            .setSampleRate(SAMPLE_RATE)
-            .build();
+                    .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
+                    .setEncoding(ENCODING)
+                    .setSampleRate(SAMPLE_RATE)
+                    .build();
     private static final AudioFormat AUDIO_FORMAT_OUT_MONO =
             new AudioFormat.Builder()
-            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-            .setEncoding(ENCODING)
-            .setSampleRate(SAMPLE_RATE)
-            .build();
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .setEncoding(ENCODING)
+                    .setSampleRate(SAMPLE_RATE)
+                    .build();
     private static final AudioFormat AUDIO_FORMAT_IN_MONO =
             new AudioFormat.Builder()
-            .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
-            .setEncoding(ENCODING)
-            .setSampleRate(SAMPLE_RATE)
-            .build();
+                    .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                    .setEncoding(ENCODING)
+                    .setSampleRate(SAMPLE_RATE)
+                    .build();
     private static final int SAMPLE_BLOCK_SIZE = 1024;
 
     // Google Assistant API constants.
@@ -112,6 +115,12 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     break;
                 case RESULT:
                     final String spokenRequestText = value.getResult().getSpokenRequestText();
+                    if (value.getResult().getVolumePercentage() != 0) {
+                        mVolumePercentage = value.getResult().getVolumePercentage();
+                        Log.i(TAG, "assistant volume changed: " + mVolumePercentage);
+                        float newVolume = AudioTrack.getMaxVolume() * mVolumePercentage / 100.0f;
+                        mAudioTrack.setVolume(newVolume);
+                    }
                     if (!spokenRequestText.isEmpty()) {
                         Log.i(TAG, "assistant request text: " + spokenRequestText);
                         mMainHandler.post(new Runnable() {
@@ -162,6 +171,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     // Audio playback and recording objects.
     private AudioTrack mAudioTrack;
     private AudioRecord mAudioRecord;
+    private int mVolumePercentage = DEFAULT_VOLUME;
 
     // Hardware peripherals.
     private VoiceHatDriver mVoiceHat;
@@ -271,7 +281,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         AudioManager manager = (AudioManager)this.getSystemService(Context.AUDIO_SERVICE);
         int maxVolume = manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         Log.i(TAG, "setting volume to: " + maxVolume);
-        manager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0);
+        manager.setStreamVolume(AudioManager.STREAM_MUSIC, mVolumePercentage * maxVolume / 100, 0);
         int outputBufferSize = AudioTrack.getMinBufferSize(AUDIO_FORMAT_OUT_MONO.getSampleRate(),
                 AUDIO_FORMAT_OUT_MONO.getChannelMask(),
                 AUDIO_FORMAT_OUT_MONO.getEncoding());
