@@ -40,7 +40,7 @@ Run the sample
 - Download the `client_secret_NNNN.json` file from the [credentials section of the Console][console-credentials].
 - Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate credentials:
 ```
-pip install google-auth-oauthlib[tool]
+pip install google-auth-oauthlib[tool] --user
 google-oauthlib-tool --client-secrets client_secret_NNNN.json \
                      --credentials app/src/main/res/raw/credentials.json \
                      --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
