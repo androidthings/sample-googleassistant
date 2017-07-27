@@ -1,12 +1,10 @@
-Google Assistant API Sample for Android Things
-==============================================
+# Google Assistant API Sample for Android Things
 
 This sample shows how to call the Google Assistant API from Android Things.
 
 It records a spoken request from the connected microphones, sends it to the Google Assistant API and plays back the Assistant's spoken response on the connected speaker.
 
-Pre-requisites
---------------
+## Pre-requisites
 
 - Android Studio 2.2+.
 - Android Things compatible board.
@@ -33,8 +31,7 @@ Pre-requisites
     - set `AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE = false` in `AssistantActivity.java`
 - [Google API Console Project][console].
 
-Run the sample
---------------
+## Run the sample
 
 - Configure the Google API Console Project to use the [Google Assistant API][google-assistant-api-config].
 - Download the `client_secret_NNNN.json` file from the [credentials section of the Console][console-credentials].
@@ -64,8 +61,7 @@ adb shell am start com.example.androidthings.assistant/.AssistantActivity
   - Release the button: recording stops.
   - The Google Assistant answer should playback on the speaker.
 
-License
--------
+## License
 
 Copyright 2017 The Android Open Source Project, Inc.
 
