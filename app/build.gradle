@@ -45,12 +45,12 @@ android {
 
 dependencies {
     compile project(':grpc')
-    provided 'com.google.android.things:androidthings:0.5-devpreview'
+    provided 'com.google.android.things:androidthings:0.5.1-devpreview'
 
     compile('com.google.auth:google-auth-library-oauth2-http:0.6.0') {
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
 
-    compile 'com.google.android.things.contrib:driver-button:0.4'
     compile 'com.google.android.things.contrib:driver-voicehat:0.2'
+    compile 'com.google.android.things.contrib:driver-button:0.4'
 }
