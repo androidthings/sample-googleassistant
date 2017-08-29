@@ -52,5 +52,5 @@ dependencies {
     }
 
     compile 'com.google.android.things.contrib:driver-button:0.4'
-    compile 'com.google.android.things.contrib:driver-voicehat:0.1'
+    compile 'com.google.android.things.contrib:driver-voicehat:0.2'
 }
