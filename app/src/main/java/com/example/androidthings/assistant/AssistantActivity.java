@@ -18,11 +18,14 @@ package com.example.androidthings.assistant;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.media.AudioFormat;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import com.example.androidthings.assistant.EmbeddedAssistant.ConversationCallback;
@@ -62,6 +65,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     // Hardware peripherals.
     private VoiceHat mVoiceHat;
     private Button mButton;
+    private android.widget.Button mButtonWidget;
     private Gpio mLed;
 
     private Handler mMainHandler;
@@ -82,6 +86,14 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
                         mAssistantRequests);
         assistantRequestsListView.setAdapter(mAssistantRequestsAdapter);
+        mButtonWidget = (android.widget.Button) findViewById(R.id.assistantQueryButton);
+        mButtonWidget.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mEmbeddedAssistant.startConversation();
+            }
+        });
+
         mMainHandler = new Handler(getMainLooper());
 
         try {
@@ -136,6 +148,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onRequestStart() {
                         Log.i(TAG, "starting assistant request, enable microphones");
+
+                        mButtonWidget.setText(R.string.button_listening);
+                        mButtonWidget.setEnabled(false);
                     }
 
                     @Override
@@ -174,13 +189,16 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onError(Throwable throwable) {
                         Log.e(TAG, "converse error:", throwable);
+                        // Reset display
+                        mButtonWidget.setText(R.string.button_retry);
+                        mButtonWidget.setEnabled(true);
                     }
 
                     @Override
                     public void onVolumeChanged(int percentage) {
                         Log.i(TAG, "assistant volume changed: " + percentage);
                         // Update our shared preferences
-                        SharedPreferences.Editor editor = PreferenceManager
+                        Editor editor = PreferenceManager
                                 .getDefaultSharedPreferences(AssistantActivity.this)
                                 .edit();
                         editor.putInt(PREF_CURRENT_VOLUME, percentage);
@@ -190,6 +208,8 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onConversationFinished() {
                         Log.i(TAG, "assistant conversation finished");
+                        mButtonWidget.setText(R.string.button_new_request);
+                        mButtonWidget.setEnabled(true);
                         if (mLed != null) {
                             try {
                                 mLed.setValue(false);
