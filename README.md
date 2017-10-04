@@ -66,6 +66,58 @@ audioInputDevice = findAudioDevice(AudioManager.GET_DEVICES_INPUTS, AudioDeviceI
 audioOutputDevice = findAudioDevice(AudioManager.GET_DEVICES_OUTPUTS, AudioDeviceInfo.TYPE_BUS);
 ```
 
+## Device Actions
+With Device Actions, you can control hardware connected to your device.
+In this sample, you can turn on and off the LED attached to your Android
+Things board.
+
+Follow the guide [here](https://developers.google.com/assistant/sdk/guides/service/python/embed/register-device)
+to learn how to register your device.
+
+- After you register your device model and id, add it in `AssistantActivity`.
+
+```Java
+        mEmbeddedAssistant = new EmbeddedAssistant.Builder()
+                ...
+                .setDeviceModelId("my-device-instance-id")
+                .setDeviceInstanceId("my-device-instance-id")
+                ...
+        ...
+```
+
+- Handle a Device Actions response if you get one.
+
+```Java
+        mEmbeddedAssistant = new EmbeddedAssistant.Builder()
+                ...
+                .setConversationCallback(new ConversationCallback() {
+                    ...
+                    @Override
+                    public void onDeviceAction(String intentName, JSONObject parameters) {
+                        // Check the type of command
+                        if (intentName.equals("action.devices.commands.OnOff")) {
+                            try {
+                                boolean turnOn = parameters.getBoolean("on");
+                                mLed.setValue(turnOn);
+                            } catch (JSONException e) {
+                                Log.e(TAG, "Cannot get value of command", e);
+                            } catch (IOException e) {
+                                Log.e(TAG, "Cannot set value of LED", e);
+                            }
+                        }
+                    }
+                }
+                ...
+        ...
+```
+
+Try it:
+
+- "Turn on"
+- "Turn off"
+
+The LED should change states based on your command.
+
 ## License
 
 Copyright 2017 The Android Open Source Project, Inc.

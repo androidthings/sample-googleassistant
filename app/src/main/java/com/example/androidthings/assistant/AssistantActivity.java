@@ -49,6 +49,7 @@ import java.util.ArrayList;
 
 import java.util.List;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 public class AssistantActivity extends Activity implements Button.OnButtonEventListener {
     private static final String TAG = AssistantActivity.class.getSimpleName();
@@ -216,6 +217,26 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                                 mAssistantRequestsAdapter.add("Google Assistant: " + response);
                             }
                         });
+                    }
+
+                    public void onDeviceAction(String intentName, JSONObject parameters) {
+                        if (parameters != null) {
+                            Log.d(TAG, "Get device action " + intentName + " with parameters: " +
+                                parameters.toString());
+                        } else {
+                            Log.d(TAG, "Get device action " + intentName + " with no paramete"
+                                + "rs");
+                        }
+                        if (intentName.equals("action.devices.commands.OnOff")) {
+                            try {
+                                boolean turnOn = parameters.getBoolean("on");
+                                mLed.setValue(turnOn);
+                            } catch (JSONException e) {
+                                Log.e(TAG, "Cannot get value of command", e);
+                            } catch (IOException e) {
+                                Log.e(TAG, "Cannot set value of LED", e);
+                            }
+                        }
                     }
                 })
                 .build();
