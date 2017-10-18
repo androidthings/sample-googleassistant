@@ -19,7 +19,7 @@ It records a spoken request from the connected microphones, sends it to the Goog
 ## Run the sample
 
 - Configure the Google API Console Project to use the [Google Assistant API][google-assistant-api-config].
-- Download the `client_secret_NNNN.json` file from the [credentials section of the Console][console-credentials].
+- Download `client_secret_NNNN.json` (type: `Other`) from the [credentials section of the Console][console-credentials].
 - Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate credentials:
 ```
 pip install google-auth-oauthlib[tool]
