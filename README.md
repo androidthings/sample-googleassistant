@@ -20,13 +20,18 @@ It records a spoken request from the connected microphones, sends it to the Goog
 
 - Configure the Google API Console Project to use the [Google Assistant API][google-assistant-api-config].
 - Download `client_secret_NNNN.json` (type: `Other`) from the [credentials section of the Console][console-credentials].
+- Install the [`google-oauthlib-tool`][google-oauthlib-tool] in a [Python 3][python3] virtual environment:
+```
+python3 -m venv env
+env/bin/python -m pip install --upgrade pip setuptools
+env/bin/pip install --upgrade google-auth-oauthlib[tool]
+```
 - Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate credentials:
 ```
-pip install google-auth-oauthlib[tool]
-google-oauthlib-tool --client-secrets client_secret_NNNN.json \
-                     --credentials app/src/main/res/raw/credentials.json \
-                     --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
-                     --save
+env/bin/google-oauthlib-tool --client-secrets client_secret_NNNN.json \
+                             --credentials app/src/main/res/raw/credentials.json \
+                             --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
+                             --save
 ```
 - Make sure to set the [Activity Controls][set-activity-controls] for the Google Account using the application.
 - On the first install, grant the sample required permissions for audio and internet access:
@@ -73,3 +78,4 @@ the License.
 [set-activity-controls]: https://developers.google.com/assistant/sdk/prototype/getting-started-other-platforms/config-dev-project-and-account#set-activity-controls
 [mic]: https://www.adafruit.com/product/3367
 [speaker]: https://www.adafruit.com/product/3369
+[python3]: https://www.python.org/downloads/
