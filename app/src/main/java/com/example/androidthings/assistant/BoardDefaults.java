@@ -28,8 +28,9 @@ public class BoardDefaults {
     private static final String DEVICE_EDISON = "edison";
     private static final String DEVICE_JOULE = "joule";
     private static final String DEVICE_RPI3 = "rpi3";
-    private static final String DEVICE_PICO = "imx6ul_pico";
-    private static final String DEVICE_VVDN = "imx6ul_iopb";
+    private static final String DEVICE_IMX6UL_PICO = "imx6ul_pico";
+    private static final String DEVICE_IMX6UL_VVDN = "imx6ul_iopb";
+    private static final String DEVICE_IMX7D_PICO = "imx7d_pico";
     private static String sBoardVariant = "";
 
     /**
@@ -47,10 +48,12 @@ public class BoardDefaults {
                 return "J6_25";
             case DEVICE_RPI3:
                 return "BCM25";
-            case DEVICE_PICO:
-                return "GPIO4_IO21";
-            case DEVICE_VVDN:
+            case DEVICE_IMX6UL_PICO:
+                return "GPIO4_IO22";
+            case DEVICE_IMX6UL_VVDN:
                 return "GPIO3_IO06";
+            case DEVICE_IMX7D_PICO:
+                return "GPIO_34";
             default:
                 throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
         }
@@ -69,10 +72,12 @@ public class BoardDefaults {
                 return "J7_71";
             case DEVICE_RPI3:
                 return "BCM23";
-            case DEVICE_PICO:
-                return "GPIO4_IO20";
-            case DEVICE_VVDN:
+            case DEVICE_IMX6UL_PICO:
+                return "GPIO2_IO03";
+            case DEVICE_IMX6UL_VVDN:
                 return "GPIO3_IO01";
+            case DEVICE_IMX7D_PICO:
+                return "GPIO_174";
             default:
                 throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
         }

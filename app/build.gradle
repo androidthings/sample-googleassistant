@@ -15,7 +15,6 @@
  */
 
 apply plugin: 'com.android.application'
-apply plugin: 'com.google.protobuf'
 
 android {
     compileSdkVersion 25
@@ -44,42 +43,14 @@ android {
     }
 }
 
-
-protobuf {
-    protoc {
-        artifact = 'com.google.protobuf:protoc:3.2.0'
-    }
-    plugins {
-        javalite {
-            artifact = "com.google.protobuf:protoc-gen-javalite:3.0.0"
-        }
-        grpc {
-            artifact = 'io.grpc:protoc-gen-grpc-java:1.2.0'
-        }
-    }
-    generateProtoTasks {
-        all().each { task ->
-            task.plugins {
-                javalite {}
-                grpc {
-                    // Options added to --grpc_out
-                    option 'lite'
-                }
-            }
-        }
-    }
-}
-
 dependencies {
-    provided 'com.google.android.things:androidthings:0.3.1-devpreview'
+    compile project(':grpc')
+    provided 'com.google.android.things:androidthings:0.5.1-devpreview'
 
-    compile 'io.grpc:grpc-okhttp:1.2.0'
-    compile 'io.grpc:grpc-protobuf-lite:1.2.0'
-    compile 'io.grpc:grpc-stub:1.2.0'
-    compile 'io.grpc:grpc-auth:1.2.0'
     compile('com.google.auth:google-auth-library-oauth2-http:0.6.0') {
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    compile 'javax.annotation:javax.annotation-api:1.2'
-    compile 'com.google.android.things.contrib:driver-button:0.2'
+
+    compile 'com.google.android.things.contrib:driver-voicehat:0.2'
+    compile 'com.google.android.things.contrib:driver-button:0.4'
 }

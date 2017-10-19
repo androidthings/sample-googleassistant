@@ -1,43 +1,25 @@
-Google Assistant API Sample for Android Things
-==============================================
+# Google Assistant API Sample for Android Things
 
-This sample shows how to call the Google Assistant API from Android Things.
+This sample shows how to call the Google Assistant API from Android Things using gRPC.
 
 It records a spoken request from the connected microphones, sends it to the Google Assistant API and plays back the Assistant's spoken response on the connected speaker.
 
-Pre-requisites
---------------
+**Note**: This sample is for prototyping. We will later be launching the Google Assistant SDK for Android Things which will support hotwording and other features.
+
+## Pre-requisites
 
 - Android Studio 2.2+.
 - Android Things compatible board.
 - If using [AIY Projects Voice Kit][voice-kit]:
-    - Android Things Raspberry Pi Dev Preview [3.1 image][dev-preview-download] with I2S enabled.
-        - mount the sdcard image
-
-              # replace sdb1 with the sdcard reader device.
-              mount -t msdos /dev/sdb1 /mnt/disk
-
-        - edit `config.txt`
-
-              # comment or remove this line:
-              # dtoverlay=pwm-2chan-with-clk,pin=18,func=2,pin2=13,func2=4
-              #
-              # uncomment or add this line:
-              dtoverlay=generic-i2s
-
-        - umount the sdcard image
-
-              sync
-              umount /mnt/disk
+    - Android Things Raspberry Pi Dev Preview 5 image from the [Android Things Console][dev-preview-download].
 - If using Android Things: supported [microphone][mic] and [speaker][speaker].
     - set `AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE = false` in `AssistantActivity.java`
 - [Google API Console Project][console].
 
-Run the sample
---------------
+## Run the sample
 
 - Configure the Google API Console Project to use the [Google Assistant API][google-assistant-api-config].
-- Download the `client_secret_NNNN.json` file from the [credentials section of the Console][console-credentials].
+- Download `client_secret_NNNN.json` (type: `Other`) from the [credentials section of the Console][console-credentials].
 - Install the [`google-oauthlib-tool`][google-oauthlib-tool] in a [Python 3][python3] virtual environment:
 ```
 python3 -m venv env
@@ -65,12 +47,10 @@ adb shell am start com.example.androidthings.assistant/.AssistantActivity
 - Try the assistant demo:
 
   - Press the button: recording starts.
-  - Ask a question in the microphone.
-  - Release the button: recording stops.
+  - Ask a question in the microphone. After your question is finished, recording will end.
   - The Google Assistant answer should playback on the speaker.
 
-License
--------
+## License
 
 Copyright 2017 The Android Open Source Project, Inc.
 
@@ -94,7 +74,7 @@ the License.
 [google-assistant-api-config]: https://developers.google.com/assistant/sdk/prototype/getting-started-other-platforms/config-dev-project-and-account
 [console-credentials]: https://console.developers.google.com/apis/credentials
 [google-oauthlib-tool]: https://github.com/GoogleCloudPlatform/google-auth-library-python-oauthlib
-[dev-preview-download]: https://dl.google.com/dl/androidthings/rpi3/devpreview/3.1/androidthings_rpi3_devpreview_3_1.zip
+[dev-preview-download]: https://partner.android.com/things/console/
 [set-activity-controls]: https://developers.google.com/assistant/sdk/prototype/getting-started-other-platforms/config-dev-project-and-account#set-activity-controls
 [mic]: https://www.adafruit.com/product/3367
 [speaker]: https://www.adafruit.com/product/3369

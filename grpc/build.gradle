@@ -1,0 +1,59 @@
+apply plugin: 'com.android.library'
+apply plugin: 'com.google.protobuf'
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion "26.0.0"
+
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.2.0'
+    }
+    plugins {
+        javalite {
+            artifact = "com.google.protobuf:protoc-gen-javalite:3.0.0"
+        }
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.2.0'
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                javalite {}
+                grpc {
+                    // Options added to --grpc_out
+                    option 'lite'
+                }
+            }
+        }
+    }
+}
+
+ext.protobufVersion = "1.2.0"
+
+dependencies {
+    compile "io.grpc:grpc-okhttp:$protobufVersion"
+    compile "io.grpc:grpc-protobuf-lite:$protobufVersion"
+    compile "io.grpc:grpc-stub:$protobufVersion"
+    compile "io.grpc:grpc-auth:$protobufVersion"
+
+    compile 'javax.annotation:javax.annotation-api:1.2'
+}
