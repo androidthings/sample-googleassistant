@@ -68,8 +68,6 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private android.widget.Button mButtonWidget;
     private Gpio mLed;
 
-    private Handler mMainHandler;
-
     // List & adapter to store and display the history of Assistant Requests.
     private EmbeddedAssistant mEmbeddedAssistant;
     private ArrayList<String> mAssistantRequests = new ArrayList<>();
@@ -93,8 +91,6 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 mEmbeddedAssistant.startConversation();
             }
         });
-
-        mMainHandler = new Handler(getMainLooper());
 
         try {
             if (AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE) {
@@ -148,20 +144,13 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onRequestStart() {
                         Log.i(TAG, "starting assistant request, enable microphones");
-
                         mButtonWidget.setText(R.string.button_listening);
                         mButtonWidget.setEnabled(false);
                     }
 
                     @Override
                     public void onSpeechRecognition(String utterance) {
-                        Log.i(TAG, "assistant request text: " + utterance);
-                        mMainHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mAssistantRequestsAdapter.add(utterance);
-                            }
-                        });
+                        mAssistantRequestsAdapter.add(utterance);
                     }
                 })
                 .setConversationCallback(new ConversationCallback() {
