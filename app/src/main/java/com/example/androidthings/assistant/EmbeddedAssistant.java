@@ -23,6 +23,8 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder.AudioSource;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.support.annotation.Nullable;
+
 import com.google.assistant.embedded.v1alpha1.AudioInConfig;
 import com.google.assistant.embedded.v1alpha1.AudioInConfig.Encoding;
 import com.google.assistant.embedded.v1alpha1.AudioOutConfig;
@@ -52,7 +54,9 @@ public class EmbeddedAssistant {
     private static final int AUDIO_RECORD_BLOCK_SIZE = 1024;
 
     // Callbacks
+    private Handler mRequestHandler;
     private RequestCallback mRequestCallback;
+    private Handler mConversationHandler;
     private ConversationCallback mConversationCallback;
 
     // Assistant Thread and Runnables implementing the push-to-talk functionality.
@@ -77,9 +81,19 @@ public class EmbeddedAssistant {
                 public void onNext(ConverseResponse value) {
                     switch (value.getConverseResponseCase()) {
                         case EVENT_TYPE:
-                            mConversationCallback.onConversationEvent(value.getEventType());
+                            mConversationHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mConversationCallback.onConversationEvent(value.getEventType());
+                                }
+                            });
                             if (value.getEventType() == EventType.END_OF_UTTERANCE) {
-                                mConversationCallback.onResponseStarted();
+                                mConversationHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mConversationCallback.onResponseStarted();
+                                    }
+                                });
                             }
                             break;
                         case RESULT:
@@ -91,12 +105,22 @@ public class EmbeddedAssistant {
                                 mVolume = volumePercentage;
                                 mAudioTrack.setVolume(AudioTrack.getMaxVolume()
                                         * volumePercentage / 100.0f);
-                                mConversationCallback.onVolumeChanged(volumePercentage);
+                                mConversationHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mConversationCallback.onVolumeChanged(volumePercentage);
+                                    }
+                                });
                             }
                             if (value.getResult().getSpokenRequestText() != null &&
                                     !value.getResult().getSpokenRequestText().isEmpty()) {
-                                mRequestCallback.onSpeechRecognition(value.getResult()
-                                        .getSpokenRequestText());
+                                mRequestHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mRequestCallback.onSpeechRecognition(value.getResult()
+                                                .getSpokenRequestText());
+                                    }
+                                });
                             }
                             // Update microphone mode.
                             mMicrophoneMode = value.getResult().getMicrophoneMode();
@@ -112,28 +136,53 @@ public class EmbeddedAssistant {
                                     ByteBuffer.wrap(value.getAudioOut().getAudioData().toByteArray());
                             mAudioTrack.write(audioData, audioData.remaining(),
                                     AudioTrack.WRITE_BLOCKING);
-                            mConversationCallback.onAudioSample(audioData);
+                            mConversationHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mConversationCallback.onAudioSample(audioData);
+                                }
+                            });
                             break;
                         case ERROR:
-                            mConversationCallback.onConversationError(value.getError());
+                            mConversationHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mConversationCallback.onConversationError(value.getError());
+                                }
+                            });
                             break;
                     }
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    mConversationCallback.onError(t);
+                    mConversationHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mConversationCallback.onError(t);
+                        }
+                    });
                 }
 
                 @Override
                 public void onCompleted() {
-                    mConversationCallback.onResponseFinished();
+                    mConversationHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mConversationCallback.onResponseFinished();
+                        }
+                    });
                     if (mMicrophoneMode == MicrophoneMode.DIALOG_FOLLOW_ON) {
                         // Automatically start a new request
                         startConversation();
                     } else {
                         // The conversation is done
-                        mConversationCallback.onConversationFinished();
+                        mConversationHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mConversationCallback.onConversationFinished();
+                            }
+                        });
                     }
                 }
             };
@@ -147,7 +196,12 @@ public class EmbeddedAssistant {
             if (result < 0) {
                 return;
             }
-            mRequestCallback.onAudioRecording();
+            mRequestHandler.post(new Runnable() {
+                                          @Override
+                                          public void run() {
+                                              mRequestCallback.onAudioRecording();
+                                          }
+                                      });
             mAssistantRequestObserver.onNext(ConverseRequest.newBuilder()
                     .setAudioIn(ByteString.copyFrom(audioData))
                     .build());
@@ -177,7 +231,12 @@ public class EmbeddedAssistant {
      */
     public void startConversation() {
         mAudioRecord.startRecording();
-        mRequestCallback.onRequestStart();
+        mRequestHandler.post(new Runnable() {
+                                      @Override
+                                      public void run() {
+                                          mRequestCallback.onRequestStart();
+                                      }
+                                  });
         mAssistantHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -216,7 +275,12 @@ public class EmbeddedAssistant {
 
         mAudioRecord.stop();
         mAudioTrack.play();
-        mConversationCallback.onConversationFinished();
+        mConversationHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mConversationCallback.onConversationFinished();
+            }
+        });
     }
 
     /**
@@ -277,7 +341,24 @@ public class EmbeddedAssistant {
          * @return Returns this builder to allow for chaining.
          */
         public Builder setRequestCallback(RequestCallback requestCallback) {
+            setRequestCallback(requestCallback, null);
+            return this;
+        }
+
+        /**
+         * Sets a {@link RequestCallback}, which is when a request is being made to the Assistant.
+         *
+         * @param requestCallback The methods that will run during a request.
+         * @param requestHandler Handler used to dispatch the callback.
+         * @return Returns this builder to allow for chaining.
+         */
+        public Builder setRequestCallback(RequestCallback requestCallback,
+                                          @Nullable Handler requestHandler) {
+            if (requestHandler == null) {
+                requestHandler = new Handler();
+            }
             mEmbeddedAssistant.mRequestCallback = requestCallback;
+            mEmbeddedAssistant.mRequestHandler = requestHandler;
             return this;
         }
 
@@ -289,7 +370,25 @@ public class EmbeddedAssistant {
          * @return Returns this builder to allow for chaining.
          */
         public Builder setConversationCallback(ConversationCallback responseCallback) {
+            setConversationCallback(responseCallback, null);
+            return this;
+        }
+
+        /**
+         * Sets a {@link ConversationCallback}, which is when a response is being given from the
+         * Assistant.
+         *
+         * @param responseCallback The methods that will run during a response.
+         * @param responseHandler Handler used to dispatch the callback.
+         * @return Returns this builder to allow for chaining.
+         */
+        public Builder setConversationCallback(ConversationCallback responseCallback,
+                                               @Nullable Handler responseHandler) {
+            if (responseHandler == null) {
+                responseHandler = new Handler();
+            }
             mEmbeddedAssistant.mConversationCallback = responseCallback;
+            mEmbeddedAssistant.mConversationHandler = responseHandler;
             return this;
         }
 
