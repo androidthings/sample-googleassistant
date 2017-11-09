@@ -18,20 +18,11 @@ package com.example.androidthings.assistant;
 
 import android.os.Build;
 
-import com.google.android.things.pio.PeripheralManagerService;
-
-import java.util.List;
-
 @SuppressWarnings("WeakerAccess")
 public class BoardDefaults {
-    private static final String DEVICE_EDISON_ARDUINO = "edison_arduino";
-    private static final String DEVICE_EDISON = "edison";
-    private static final String DEVICE_JOULE = "joule";
     private static final String DEVICE_RPI3 = "rpi3";
     private static final String DEVICE_IMX6UL_PICO = "imx6ul_pico";
-    private static final String DEVICE_IMX6UL_VVDN = "imx6ul_iopb";
     private static final String DEVICE_IMX7D_PICO = "imx7d_pico";
-    private static String sBoardVariant = "";
 
     /**
      * Return the GPIO pin that the LED is connected on.
@@ -39,19 +30,11 @@ public class BoardDefaults {
      * that turns on when the GPIO pin is HIGH, and off when low.
      */
     public static String getGPIOForLED() {
-        switch (getBoardVariant()) {
-            case DEVICE_EDISON_ARDUINO:
-                return "IO13";
-            case DEVICE_EDISON:
-                return "GP45";
-            case DEVICE_JOULE:
-                return "J6_25";
+        switch (Build.DEVICE) {
             case DEVICE_RPI3:
                 return "BCM25";
             case DEVICE_IMX6UL_PICO:
                 return "GPIO4_IO22";
-            case DEVICE_IMX6UL_VVDN:
-                return "GPIO3_IO06";
             case DEVICE_IMX7D_PICO:
                 return "GPIO2_IO02";
             default:
@@ -63,19 +46,11 @@ public class BoardDefaults {
      * Return the GPIO pin that the Button is connected on.
      */
     public static String getGPIOForButton() {
-        switch (getBoardVariant()) {
-            case DEVICE_EDISON_ARDUINO:
-                return "IO12";
-            case DEVICE_EDISON:
-                return "GP44";
-            case DEVICE_JOULE:
-                return "J7_71";
+        switch (Build.DEVICE) {
             case DEVICE_RPI3:
                 return "BCM23";
             case DEVICE_IMX6UL_PICO:
                 return "GPIO2_IO03";
-            case DEVICE_IMX6UL_VVDN:
-                return "GPIO3_IO01";
             case DEVICE_IMX7D_PICO:
                 return "GPIO6_IO14";
             default:
@@ -87,7 +62,7 @@ public class BoardDefaults {
      * Return the I2S Bus that the Voice Hat is connected to.
      */
     public static String getI2SDeviceForVoiceHat() {
-        switch (getBoardVariant()) {
+        switch (Build.DEVICE) {
             case DEVICE_RPI3:
                 return "I2S1";
             default:
@@ -99,31 +74,11 @@ public class BoardDefaults {
      * Return the GPIO pin for the Voice Hat DAC trigger.
      */
     public static String getGPIOForVoiceHatTrigger() {
-        switch (getBoardVariant()) {
+        switch (Build.DEVICE) {
             case DEVICE_RPI3:
                 return "BCM16";
             default:
                 throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
         }
-    }
-
-    private static String getBoardVariant() {
-        if (!sBoardVariant.isEmpty()) {
-            return sBoardVariant;
-        }
-        sBoardVariant = Build.DEVICE;
-        // For the edison check the pin prefix
-        // to always return Edison Breakout pin name when applicable.
-        if (sBoardVariant.equals(DEVICE_EDISON)) {
-            PeripheralManagerService pioService = new PeripheralManagerService();
-            List<String> gpioList = pioService.getGpioList();
-            if (gpioList.size() != 0) {
-                String pin = gpioList.get(0);
-                if (pin.startsWith("IO")) {
-                    sBoardVariant = DEVICE_EDISON_ARDUINO;
-                }
-            }
-        }
-        return sBoardVariant;
     }
 }
