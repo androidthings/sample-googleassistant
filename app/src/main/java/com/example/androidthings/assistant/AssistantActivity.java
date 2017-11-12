@@ -52,7 +52,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private static final String PREF_CURRENT_VOLUME = "current_volume";
     private static final int SAMPLE_RATE = 16000;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
-    private static final int DEFAULT_VOLUME = 10;
+    private static final int DEFAULT_VOLUME = 100;
 
     private static final AudioFormat AUDIO_FORMAT_STEREO =
             new AudioFormat.Builder()
