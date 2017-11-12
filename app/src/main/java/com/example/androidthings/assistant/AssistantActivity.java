@@ -19,6 +19,7 @@ package com.example.androidthings.assistant;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.media.AudioFormat;
+import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -31,6 +32,7 @@ import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
+import com.google.assistant.embedded.v1alpha1.ConverseResponse;
 import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.rpc.Status;
@@ -38,6 +40,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.RunnableFuture;
+
 import org.json.JSONException;
 
 public class AssistantActivity extends Activity implements Button.OnButtonEventListener {
@@ -51,7 +55,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private static final String PREF_CURRENT_VOLUME = "current_volume";
     private static final int SAMPLE_RATE = 16000;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
-    private static final int DEFAULT_VOLUME = 100;
+    private static final int DEFAULT_VOLUME = 10;
 
     private static final AudioFormat AUDIO_FORMAT_STEREO =
             new AudioFormat.Builder()
@@ -70,6 +74,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private EmbeddedAssistant mEmbeddedAssistant;
     private ArrayList<String> mAssistantRequests = new ArrayList<>();
     private ArrayAdapter<String> mAssistantRequestsAdapter;
+    private LedBlinkThread mLedBlinkThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +82,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         Log.i(TAG, "starting assistant demo");
 
         setContentView(R.layout.activity_main);
-        ListView assistantRequestsListView = (ListView)findViewById(R.id.assistantRequestsListView);
+        ListView assistantRequestsListView = (ListView) findViewById(R.id.assistantRequestsListView);
         mAssistantRequestsAdapter =
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
                         mAssistantRequests);
@@ -107,10 +112,14 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     Button.LogicState.PRESSED_WHEN_LOW);
             mButton.setDebounceDelay(BUTTON_DEBOUNCE_DELAY_MS);
             mButton.setOnButtonEventListener(this);
+
             PeripheralManagerService pioService = new PeripheralManagerService();
             mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
             mLed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mLed.setActiveType(Gpio.ACTIVE_LOW);
+
+            mLedBlinkThread = new LedBlinkThread(mLed);
+            mLedBlinkThread.start();
         } catch (IOException e) {
             Log.e(TAG, "error configuring peripherals:", e);
             return;
@@ -145,6 +154,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                             @Override
                             public void run() {
                                 mAssistantRequestsAdapter.add(utterance);
+                                // Play it on the speaker
                             }
                         });
                     }
@@ -153,17 +163,19 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onConversationEvent(EventType eventType) {
                         Log.d(TAG, "converse response event: " + eventType);
+                        if ("END_OF_UTTERANCE".equals(eventType.toString())) {
+                            try {
+                                mLed.setValue(true);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
 
                     @Override
                     public void onAudioSample(ByteBuffer audioSample) {
-                        if (mLed != null) {
-                            try {
-                                mLed.setValue(!mLed.getValue());
-                            } catch (IOException e) {
-                                Log.w(TAG, "error toggling LED:", e);
-                            }
-                        }
+                        Log.e(TAG, "onAudioSample");
+                        mLedBlinkThread.setBlinking(true);
                     }
 
                     @Override
@@ -190,13 +202,12 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onConversationFinished() {
                         Log.i(TAG, "assistant conversation finished");
-                        if (mLed != null) {
-                            try {
-                                mLed.setValue(false);
-                            } catch (IOException e) {
-                                Log.e(TAG, "error turning off LED:", e);
-                            }
+                        try {
+                            mLed.setValue(true);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
+                        mLedBlinkThread.setBlinking(false);
                     }
                 })
                 .build();
@@ -221,14 +232,17 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "destroying assistant demo");
+        mLedBlinkThread.close();
+
         if (mLed != null) {
             try {
                 mLed.close();
             } catch (IOException e) {
-                Log.w(TAG, "error closing LED", e);
+                Log.w(TAG, "error closing button", e);
             }
             mLed = null;
         }
+
         if (mButton != null) {
             try {
                 mButton.close();
