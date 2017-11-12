@@ -19,7 +19,6 @@ package com.example.androidthings.assistant;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.media.AudioFormat;
-import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -32,7 +31,6 @@ import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
-import com.google.assistant.embedded.v1alpha1.ConverseResponse;
 import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.rpc.Status;
@@ -40,7 +38,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.RunnableFuture;
 
 import org.json.JSONException;
 
@@ -154,7 +151,6 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                             @Override
                             public void run() {
                                 mAssistantRequestsAdapter.add(utterance);
-                                // Play it on the speaker
                             }
                         });
                     }
@@ -238,7 +234,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             try {
                 mLed.close();
             } catch (IOException e) {
-                Log.w(TAG, "error closing button", e);
+                Log.w(TAG, "error closing LED", e);
             }
             mLed = null;
         }
