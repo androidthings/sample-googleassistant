@@ -31,7 +31,6 @@ import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
-import com.google.assistant.embedded.v1alpha1.ConverseResponse;
 import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.rpc.Status;
