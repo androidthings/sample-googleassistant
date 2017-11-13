@@ -31,6 +31,7 @@ import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
+import com.google.assistant.embedded.v1alpha1.ConverseResponse;
 import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.rpc.Status;
@@ -115,8 +116,10 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             mLed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mLed.setActiveType(Gpio.ACTIVE_LOW);
 
-            mLedBlinkThread = new LedBlinkThread(mLed);
-            mLedBlinkThread.start();
+            if (mLed != null) {
+                mLedBlinkThread = new LedBlinkThread(mLed);
+                mLedBlinkThread.start();
+            }
         } catch (IOException e) {
             Log.e(TAG, "error configuring peripherals:", e);
             return;
@@ -159,11 +162,13 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onConversationEvent(EventType eventType) {
                         Log.d(TAG, "converse response event: " + eventType);
-                        if ("END_OF_UTTERANCE".equals(eventType.toString())) {
-                            try {
-                                mLed.setValue(true);
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                        if (EventType.END_OF_UTTERANCE.equals(eventType)) {
+                            if (mLed != null) {
+                                try {
+                                    mLed.setValue(true);
+                                } catch (IOException e) {
+                                    Log.w(TAG, "error turning off LED:", e);
+                                }
                             }
                         }
                     }
@@ -171,7 +176,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onAudioSample(ByteBuffer audioSample) {
                         Log.e(TAG, "onAudioSample");
-                        mLedBlinkThread.setBlinking(true);
+                        if (mLedBlinkThread != null) {
+                            mLedBlinkThread.blink();
+                        }
                     }
 
                     @Override
@@ -198,12 +205,13 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onConversationFinished() {
                         Log.i(TAG, "assistant conversation finished");
-                        try {
-                            mLed.setValue(true);
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (mLed != null) {
+                            try {
+                                mLed.setValue(true);
+                            } catch (IOException e) {
+                                Log.w(TAG, "error turning off LED:", e);
+                            }
                         }
-                        mLedBlinkThread.setBlinking(false);
                     }
                 })
                 .build();

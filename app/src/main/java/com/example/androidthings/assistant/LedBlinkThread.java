@@ -1,11 +1,16 @@
 package com.example.androidthings.assistant;
 
+import android.util.Log;
+
 import com.google.android.things.pio.Gpio;
 
 import java.io.IOException;
 import java.util.Random;
 
 public class LedBlinkThread extends Thread {
+
+    private static final String TAG = "LedBlinkingThread";
+
     private final Gpio mLed;
     private final Random mRandom;
     private boolean mBlinking = false;
@@ -16,15 +21,13 @@ public class LedBlinkThread extends Thread {
         mRandom = new Random();
     }
 
-    public void setBlinking(boolean b) {
+    public void blink() {
         if (mClose) {
             return;
         }
-        if (mBlinking != b) {
-            mBlinking = b;
-            synchronized (this) {
-                notify();
-            }
+        mBlinking = true;
+        synchronized (this) {
+            notify();
         }
     }
 
@@ -54,9 +57,9 @@ public class LedBlinkThread extends Thread {
                     mLed.setValue(true);
                     sleep(150+mRandom.nextInt(100));
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, "Error accessing the LED", e);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, "Error while sleeping", e);
                 }
             }
         }
