@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.util.Random;
 
 public class LedBlinkThread extends Thread {
-
-    private static final String TAG = "LedBlinkingThread";
+    private static final String TAG = LedBlinkThread.class.getSimpleName();
+    private static final long BLINK_INTERVAL = 200;
 
     private final Gpio mLed;
     private final Random mRandom;
@@ -53,9 +53,9 @@ public class LedBlinkThread extends Thread {
                 mBlinking = false;
                 try {
                     mLed.setValue(false);
-                    sleep(150+mRandom.nextInt(100));
+                    sleep(BLINK_INTERVAL);
                     mLed.setValue(true);
-                    sleep(150+mRandom.nextInt(100));
+                    sleep(BLINK_INTERVAL);
                 } catch (IOException e) {
                     Log.e(TAG, "Error accessing the LED", e);
                 } catch (InterruptedException e) {

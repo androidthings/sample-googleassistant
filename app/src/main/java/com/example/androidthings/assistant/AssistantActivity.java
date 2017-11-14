@@ -166,7 +166,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                                 try {
                                     mLed.setValue(true);
                                 } catch (IOException e) {
-                                    Log.w(TAG, "error turning off LED:", e);
+                                    Log.e(TAG, "error turning off LED:", e);
                                 }
                             }
                         }
@@ -174,7 +174,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
                     @Override
                     public void onAudioSample(ByteBuffer audioSample) {
-                        Log.e(TAG, "onAudioSample");
+                        Log.i(TAG, "onAudioSample");
                         if (mLedBlinkThread != null) {
                             mLedBlinkThread.blink();
                         }
