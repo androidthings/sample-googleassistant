@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.json.JSONException;
 
 public class AssistantActivity extends Activity implements Button.OnButtonEventListener {
@@ -70,6 +71,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private EmbeddedAssistant mEmbeddedAssistant;
     private ArrayList<String> mAssistantRequests = new ArrayList<>();
     private ArrayAdapter<String> mAssistantRequestsAdapter;
+    private LedBlinkThread mLedBlinkThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +79,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         Log.i(TAG, "starting assistant demo");
 
         setContentView(R.layout.activity_main);
-        ListView assistantRequestsListView = (ListView)findViewById(R.id.assistantRequestsListView);
+        ListView assistantRequestsListView = (ListView) findViewById(R.id.assistantRequestsListView);
         mAssistantRequestsAdapter =
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
                         mAssistantRequests);
@@ -107,10 +109,16 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     Button.LogicState.PRESSED_WHEN_LOW);
             mButton.setDebounceDelay(BUTTON_DEBOUNCE_DELAY_MS);
             mButton.setOnButtonEventListener(this);
+
             PeripheralManagerService pioService = new PeripheralManagerService();
             mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
             mLed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mLed.setActiveType(Gpio.ACTIVE_LOW);
+
+            if (mLed != null) {
+                mLedBlinkThread = new LedBlinkThread(mLed);
+                mLedBlinkThread.start();
+            }
         } catch (IOException e) {
             Log.e(TAG, "error configuring peripherals:", e);
             return;
@@ -153,16 +161,22 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     @Override
                     public void onConversationEvent(EventType eventType) {
                         Log.d(TAG, "converse response event: " + eventType);
+                        if (EventType.END_OF_UTTERANCE.equals(eventType)) {
+                            if (mLed != null) {
+                                try {
+                                    mLed.setValue(true);
+                                } catch (IOException e) {
+                                    Log.e(TAG, "error turning off LED:", e);
+                                }
+                            }
+                        }
                     }
 
                     @Override
                     public void onAudioSample(ByteBuffer audioSample) {
-                        if (mLed != null) {
-                            try {
-                                mLed.setValue(!mLed.getValue());
-                            } catch (IOException e) {
-                                Log.w(TAG, "error toggling LED:", e);
-                            }
+                        Log.i(TAG, "onAudioSample");
+                        if (mLedBlinkThread != null) {
+                            mLedBlinkThread.blink();
                         }
                     }
 
@@ -192,7 +206,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                         Log.i(TAG, "assistant conversation finished");
                         if (mLed != null) {
                             try {
-                                mLed.setValue(false);
+                                mLed.setValue(true);
                             } catch (IOException e) {
                                 Log.e(TAG, "error turning off LED:", e);
                             }
@@ -221,6 +235,8 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "destroying assistant demo");
+        mLedBlinkThread.close();
+
         if (mLed != null) {
             try {
                 mLed.close();
@@ -229,6 +245,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             }
             mLed = null;
         }
+
         if (mButton != null) {
             try {
                 mButton.close();
