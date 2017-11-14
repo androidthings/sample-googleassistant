@@ -208,7 +208,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                             try {
                                 mLed.setValue(true);
                             } catch (IOException e) {
-                                Log.w(TAG, "error turning off LED:", e);
+                                Log.e(TAG, "error turning off LED:", e);
                             }
                         }
                     }
