@@ -24,21 +24,22 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder.AudioSource;
 import android.os.Handler;
 import android.os.HandlerThread;
+
 import android.support.annotation.Nullable;
 import android.util.Log;
-
-import com.google.assistant.embedded.v1alpha1.AudioInConfig;
-import com.google.assistant.embedded.v1alpha1.AudioOutConfig;
-import com.google.assistant.embedded.v1alpha1.ConverseConfig;
-import com.google.assistant.embedded.v1alpha1.ConverseRequest;
-import com.google.assistant.embedded.v1alpha1.ConverseResponse;
-import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
-import com.google.assistant.embedded.v1alpha1.ConverseResult.MicrophoneMode;
-import com.google.assistant.embedded.v1alpha1.ConverseState;
-import com.google.assistant.embedded.v1alpha1.EmbeddedAssistantGrpc;
+import com.google.assistant.embedded.v1alpha2.AssistConfig;
+import com.google.assistant.embedded.v1alpha2.AssistRequest;
+import com.google.assistant.embedded.v1alpha2.AssistResponse;
+import com.google.assistant.embedded.v1alpha2.AssistResponse.EventType;
+import com.google.assistant.embedded.v1alpha2.AudioInConfig;
+import com.google.assistant.embedded.v1alpha2.AudioOutConfig;
+import com.google.assistant.embedded.v1alpha2.DeviceConfig;
+import com.google.assistant.embedded.v1alpha2.DialogStateIn;
+import com.google.assistant.embedded.v1alpha2.DialogStateOut.MicrophoneMode;
+import com.google.assistant.embedded.v1alpha2.EmbeddedAssistantGrpc;
+import com.google.assistant.embedded.v1alpha2.SpeechRecognitionResult;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.protobuf.ByteString;
-import com.google.rpc.Status;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
@@ -46,8 +47,10 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-
+import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 public class EmbeddedAssistant {
     private static final String TAG = EmbeddedAssistant.class.getSimpleName();
@@ -55,6 +58,9 @@ public class EmbeddedAssistant {
 
     private static final String ASSISTANT_API_ENDPOINT = "embeddedassistant.googleapis.com";
     private static final int AUDIO_RECORD_BLOCK_SIZE = 1024;
+
+    // Device Actions
+    private DeviceConfig mDeviceConfig;
 
     // Callbacks
     private Handler mRequestHandler;
@@ -64,6 +70,7 @@ public class EmbeddedAssistant {
 
     // Assistant Thread and Runnables implementing the push-to-talk functionality.
     private ByteString mConversationState;
+    private String mLanguageCode = "en-US";
     private AudioRecord mAudioRecord;
     private AudioInConfig mAudioInConfig;
     private AudioOutConfig mAudioOutConfig;
@@ -83,66 +90,103 @@ public class EmbeddedAssistant {
     // gRPC client and stream observers.
     private int mAudioOutSize; // Tracks the size of audio responses to determine when it ends.
     private EmbeddedAssistantGrpc.EmbeddedAssistantStub mAssistantService;
-    private StreamObserver<ConverseRequest> mAssistantRequestObserver;
-    private StreamObserver<ConverseResponse> mAssistantResponseObserver =
-            new StreamObserver<ConverseResponse>() {
+    private StreamObserver<AssistRequest> mAssistantRequestObserver;
+    private StreamObserver<AssistResponse> mAssistantResponseObserver =
+            new StreamObserver<AssistResponse>() {
                 @Override
-                public void onNext(final ConverseResponse value) {
-                    switch (value.getConverseResponseCase()) {
-                        case EVENT_TYPE:
+                public void onNext(final AssistResponse value) {
+                    if (value.getDeviceAction() != null &&
+                        !value.getDeviceAction().getDeviceRequestJson().isEmpty()) {
+                        // Iterate through JSON object
+                        try {
+                            JSONObject deviceAction = new JSONObject(value.getDeviceAction()
+                                .getDeviceRequestJson());
+                            JSONArray inputs = deviceAction.getJSONArray("inputs");
+                            for (int i = 0; i < inputs.length(); i++) {
+                                if (inputs.getJSONObject(i).getString("intent").equals(
+                                    "action.devices.EXECUTE")) {
+                                    JSONArray commands = inputs.getJSONObject(i)
+                                        .getJSONObject("payload")
+                                        .getJSONArray("commands");
+                                    for (int j = 0; j < commands.length(); j++) {
+                                        final JSONArray execution = commands.getJSONObject(j)
+                                            .getJSONArray("execution");
+                                        for (int k = 0; k < execution.length(); k++) {
+                                            final int finalK = k;
+                                            mConversationHandler.post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    try {
+                                                        mConversationCallback.onDeviceAction(
+                                                            execution
+                                                                .getJSONObject(finalK)
+                                                                .getString("command"),
+                                                            execution.getJSONObject(finalK)
+                                                                .optJSONObject("params"));
+                                                    } catch (JSONException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                }
+                                            });
+
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (value.getEventType() == EventType.END_OF_UTTERANCE) {
+                        mRequestHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mRequestCallback.onRequestFinish();
+                            }
+                        });
+                        mConversationHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mConversationCallback.onResponseStarted();
+                            }
+                        });
+                    }
+                    if (value.getDialogStateOut() != null) {
+                        mConversationState = value.getDialogStateOut().getConversationState();
+                        if (value.getDialogStateOut().getVolumePercentage() != 0) {
+                            final int volumePercentage = value.getDialogStateOut().getVolumePercentage();
+                            mVolume = volumePercentage;
                             mConversationHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    mConversationCallback.onConversationEvent(value.getEventType());
+                                    mConversationCallback.onVolumeChanged(volumePercentage);
                                 }
                             });
-                            break;
-                        case RESULT:
-                            // Update state.
-                            mConversationState = value.getResult().getConversationState();
-                            // Update volume.
-                            if (value.getResult().getVolumePercentage() != 0) {
-                                final int volumePercentage = value.getResult().getVolumePercentage();
-                                mVolume = volumePercentage;
-                                mConversationHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        mConversationCallback.onVolumeChanged(volumePercentage);
-                                    }
-                                });
+                        }
+                        mRequestHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mRequestCallback.onSpeechRecognition(value.getSpeechResultsList());
                             }
-                            if (value.getResult().getSpokenRequestText() != null &&
-                                    !value.getResult().getSpokenRequestText().isEmpty()) {
-                                mRequestHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        mRequestCallback.onSpeechRecognition(value.getResult()
-                                                .getSpokenRequestText());
-                                    }
-                                });
+                        });
+                        mMicrophoneMode = value.getDialogStateOut().getMicrophoneMode();
+                    }
+                    if (value.getAudioOut() != null) {
+                        if (mAudioOutSize <= value.getAudioOut().getSerializedSize()) {
+                            mAudioOutSize = value.getAudioOut().getSerializedSize();
+                        } else {
+                            mAudioOutSize = 0;
+                            onCompleted();
+                        }
+                        final ByteBuffer audioData =
+                            ByteBuffer.wrap(value.getAudioOut().getAudioData().toByteArray());
+                        mAssistantResponses.add(audioData);
+                        mConversationHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mConversationCallback.onAudioSample(audioData);
                             }
-                            // Update microphone mode.
-                            mMicrophoneMode = value.getResult().getMicrophoneMode();
-                            break;
-                        case AUDIO_OUT:
-                            if (mAudioOutSize <= value.getAudioOut().getSerializedSize()) {
-                                mAudioOutSize = value.getAudioOut().getSerializedSize();
-                            } else {
-                                mAudioOutSize = 0;
-                                onCompleted();
-                            }
-                            final ByteBuffer audioData =
-                                    ByteBuffer.wrap(value.getAudioOut().getAudioData().toByteArray());
-                            mAssistantResponses.add(audioData);
-                            break;
-                        case ERROR:
-                            mConversationHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    mConversationCallback.onConversationError(value.getError());
-                                }
-                            });
-                            break;
+                        });
                     }
                 }
 
@@ -221,12 +265,12 @@ public class EmbeddedAssistant {
                 return;
             }
             mRequestHandler.post(new Runnable() {
-                                          @Override
-                                          public void run() {
-                                              mRequestCallback.onAudioRecording();
-                                          }
-                                      });
-            mAssistantRequestObserver.onNext(ConverseRequest.newBuilder()
+                @Override
+                public void run() {
+                    mRequestCallback.onAudioRecording();
+                }
+            });
+            mAssistantRequestObserver.onNext(AssistRequest.newBuilder()
                     .setAudioIn(ByteString.copyFrom(audioData))
                     .build());
             mAssistantHandler.post(mStreamAssistantRequest);
@@ -256,26 +300,28 @@ public class EmbeddedAssistant {
     public void startConversation() {
         mAudioRecord.startRecording();
         mRequestHandler.post(new Runnable() {
-                                      @Override
-                                      public void run() {
-                                          mRequestCallback.onRequestStart();
-                                      }
-                                  });
+            @Override
+            public void run() {
+                mRequestCallback.onRequestStart();
+            }
+        });
         mAssistantHandler.post(new Runnable() {
             @Override
             public void run() {
-                mAssistantRequestObserver = mAssistantService.converse(mAssistantResponseObserver);
-                ConverseConfig.Builder converseConfigBuilder = ConverseConfig.newBuilder()
+                mAssistantRequestObserver = mAssistantService.assist(mAssistantResponseObserver);
+                AssistConfig.Builder assistConfigBuilder = AssistConfig.newBuilder()
                         .setAudioInConfig(mAudioInConfig)
-                        .setAudioOutConfig(mAudioOutConfig);
+                        .setAudioOutConfig(mAudioOutConfig)
+                        .setDeviceConfig(mDeviceConfig);
+                DialogStateIn.Builder dialogStateInBuilder = DialogStateIn.newBuilder();
                 if (mConversationState != null) {
-                    converseConfigBuilder.setConverseState(ConverseState.newBuilder()
-                            .setConversationState(mConversationState)
-                            .build());
+                    dialogStateInBuilder.setConversationState(mConversationState);
                 }
+                dialogStateInBuilder.setLanguageCode(mLanguageCode);
+                assistConfigBuilder.setDialogStateIn(dialogStateInBuilder.build());
                 mAssistantRequestObserver.onNext(
-                        ConverseRequest.newBuilder()
-                                .setConfig(converseConfigBuilder.build())
+                        AssistRequest.newBuilder()
+                                .setConfig(assistConfigBuilder.build())
                                 .build());
             }
         });
@@ -345,6 +391,8 @@ public class EmbeddedAssistant {
     public static class Builder {
         private EmbeddedAssistant mEmbeddedAssistant;
         private int mSampleRate;
+        private String mDeviceModelId;
+        private String mDeviceInstanceId;
 
         /**
          * Creates a Builder.
@@ -468,6 +516,41 @@ public class EmbeddedAssistant {
         }
 
         /**
+         * Sets the model id for each Assistant request.
+         *
+         * @param deviceModelId The device model id.
+         * @return Returns this builder to allow for chaining.
+         */
+        public Builder setDeviceModelId(String deviceModelId) {
+            mDeviceModelId = deviceModelId;
+            return this;
+        }
+
+        /**
+         * Sets the instance id for each Assistant request.
+         *
+         * @param deviceInstanceId The device instance id.
+         * @return Returns this builder to allow for chaining.
+         */
+        public Builder setDeviceInstanceId(String deviceInstanceId) {
+            mDeviceInstanceId = deviceInstanceId;
+            return this;
+        }
+
+        /**
+         * Sets language code of the request using IETF BCP 47 syntax.
+         * See <a href='https://tools.ietf.org/html/bcp47'>for the documentation</a>.
+         * For example: "en-US".
+         *
+         * @param languageCode Code for the language. Only Assistant-supported languages are valid.
+         * @return Returns this builder to allow for chaining.
+         */
+        public Builder setLanguageCode(String languageCode) {
+            mEmbeddedAssistant.mLanguageCode = languageCode;
+            return this;
+        }
+
+        /**
          * Returns an AssistantManager if all required parameters have been supplied.
          *
          * @return An inactive AssistantManager. Call {@link EmbeddedAssistant#connect()} to start
@@ -534,6 +617,12 @@ public class EmbeddedAssistant {
                 }
             }
 
+            // Construct DeviceConfig
+            mEmbeddedAssistant.mDeviceConfig = DeviceConfig.newBuilder()
+                .setDeviceId(mDeviceInstanceId)
+                .setDeviceModelId(mDeviceModelId)
+                .build();
+
             return mEmbeddedAssistant;
         }
     }
@@ -549,6 +638,11 @@ public class EmbeddedAssistant {
         public void onRequestStart() {}
 
         /**
+         * Called when a request has completed.
+         */
+        public void onRequestFinish() {}
+
+        /**
          * Called when audio is being recording. This may be called multiple times during a single
          * request.
          */
@@ -557,7 +651,7 @@ public class EmbeddedAssistant {
         /**
          * Called when the request is complete and the Assistant returns the user's speech-to-text.
          */
-        public void onSpeechRecognition(String utterance) {}
+        public void onSpeechRecognition(List<SpeechRecognitionResult> results) {}
     }
 
     /**
@@ -577,14 +671,6 @@ public class EmbeddedAssistant {
         public void onResponseFinished() {}
 
         /**
-         * Called when a converse event occurs.
-         *
-         * @param eventType An {@link EventType} object which contains information about the type of
-         *    event.
-         */
-        public void onConversationEvent(EventType eventType) {}
-
-        /**
          * Called when audio is being played. This may be called multiple times during a single
          * response. The audio will play using the AudioTrack, although this method may be used
          * to provide auxiliary effects.
@@ -592,13 +678,6 @@ public class EmbeddedAssistant {
          * @param audioSample The raw audio sample from the Assistant
          */
         public void onAudioSample(ByteBuffer audioSample) {}
-
-        /**
-         * Called when there is an error with conversing.
-         *
-         * @param error A {@link Status} object which contains information about the converse error.
-         */
-        public void onConversationError(Status error) {}
 
         /**
          * Called when an error occurs during the response
@@ -613,6 +692,14 @@ public class EmbeddedAssistant {
          * @param percentage The desired volume as a percentage of intensity, in the range 0 - 100.
          */
         public void onVolumeChanged(int percentage) {}
+
+        /**
+         * Called when the response contains a DeviceAction.
+         *
+         * @param intentName The name of the intent to execute.
+         * @param parameters A JSONObject containing parameters related to this intent.
+         */
+        public void onDeviceAction(String intentName, JSONObject parameters) {}
 
         /**
          * Called when the entire conversation is finished.

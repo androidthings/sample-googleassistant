@@ -24,6 +24,7 @@ import android.media.AudioManager;
 import android.media.AudioDeviceInfo;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.preference.PreferenceManager;
 import android.view.View;
@@ -39,14 +40,14 @@ import com.google.android.things.contrib.driver.voicehat.Max98357A;
 import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
-import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
+import com.google.assistant.embedded.v1alpha2.SpeechRecognitionResult;
 import com.google.auth.oauth2.UserCredentials;
-import com.google.rpc.Status;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
+import java.util.List;
 import org.json.JSONException;
 
 public class AssistantActivity extends Activity implements Button.OnButtonEventListener {
@@ -68,6 +69,8 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private Gpio mLed;
     private Max98357A mDac;
 
+    private Handler mMainHandler;
+
     // List & adapter to store and display the history of Assistant Requests.
     private EmbeddedAssistant mEmbeddedAssistant;
     private ArrayList<String> mAssistantRequests = new ArrayList<>();
@@ -84,6 +87,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         mAssistantRequestsAdapter =
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
                         mAssistantRequests);
+        mMainHandler = new Handler(getMainLooper());
         assistantRequestsListView.setAdapter(mAssistantRequestsAdapter);
         mButtonWidget = findViewById(R.id.assistantQueryButton);
         mButtonWidget.setOnClickListener(new OnClickListener() {
@@ -160,26 +164,18 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     }
 
                     @Override
-                    public void onSpeechRecognition(String utterance) {
-                        mAssistantRequestsAdapter.add(utterance);
+                    public void onSpeechRecognition(List<SpeechRecognitionResult> results) {
+                        for (final SpeechRecognitionResult result : results) {
+                            Log.i(TAG, "assistant request text: " + result.getTranscript() +
+                                " stability: " + Float.toString(result.getStability()));
+                            mAssistantRequestsAdapter.add(result.getTranscript());
+                        }
                     }
                 })
                 .setConversationCallback(new ConversationCallback() {
                     @Override
-                    public void onResponseStarted() {
-                        if (mDac != null) {
-                            try {
-                                mDac.setSdMode(Max98357A.SD_MODE_LEFT);
-                                mLed.setValue(true);
-                            } catch (IOException e) {
-                                Log.e(TAG, "error enabling DAC", e);
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onResponseFinished() {
-                        if (mDac != null) {
+                    public void onAudioSample(ByteBuffer audioSample) {
+                        if (mLed != null) {
                             try {
                                 mDac.setSdMode(Max98357A.SD_MODE_SHUTDOWN);
                                 mLed.setValue(false);
@@ -190,30 +186,8 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                     }
 
                     @Override
-                    public void onConversationEvent(EventType eventType) {
-                        Log.d(TAG, "converse response event: " + eventType);
-                    }
-
-                    @Override
-                    public void onAudioSample(ByteBuffer audioSample) {
-                        try {
-                            mLed.setValue(!mLed.getValue());
-                        } catch (IOException e) {
-                            Log.e(TAG, "error toggling LED", e);
-                        }
-                    }
-
-                    @Override
-                    public void onConversationError(Status error) {
-                        Log.e(TAG, "converse response error: " + error);
-                    }
-
-                    @Override
                     public void onError(Throwable throwable) {
-                        Log.e(TAG, "converse error", throwable);
-                        // Reset display
-                        mButtonWidget.setText(R.string.button_retry);
-                        mButtonWidget.setEnabled(true);
+                        Log.e(TAG, "assist error:", throwable);
                     }
 
                     @Override
