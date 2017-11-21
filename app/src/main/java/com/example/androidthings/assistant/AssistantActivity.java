@@ -207,6 +207,16 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                         mButtonWidget.setText(R.string.button_new_request);
                         mButtonWidget.setEnabled(true);
                     }
+
+                    @Override
+                    public void onAssistantResponse(final String response) {
+                        mMainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAssistantRequestsAdapter.add("Google Assistant: " + response);
+                            }
+                        });
+                    }
                 })
                 .build();
         mEmbeddedAssistant.connect();

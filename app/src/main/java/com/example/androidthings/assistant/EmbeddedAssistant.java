@@ -24,7 +24,6 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder.AudioSource;
 import android.os.Handler;
 import android.os.HandlerThread;
-
 import android.support.annotation.Nullable;
 import android.util.Log;
 import com.google.assistant.embedded.v1alpha2.AssistConfig;
@@ -34,6 +33,7 @@ import com.google.assistant.embedded.v1alpha2.AssistResponse.EventType;
 import com.google.assistant.embedded.v1alpha2.AudioInConfig;
 import com.google.assistant.embedded.v1alpha2.AudioOutConfig;
 import com.google.assistant.embedded.v1alpha2.DeviceConfig;
+import com.google.assistant.embedded.v1alpha2.DeviceLocation;
 import com.google.assistant.embedded.v1alpha2.DialogStateIn;
 import com.google.assistant.embedded.v1alpha2.DialogStateOut.MicrophoneMode;
 import com.google.assistant.embedded.v1alpha2.EmbeddedAssistantGrpc;
@@ -72,6 +72,7 @@ public class EmbeddedAssistant {
     private ByteString mConversationState;
     private String mLanguageCode = "en-US";
     private AudioRecord mAudioRecord;
+    private DeviceLocation mDeviceLocation;
     private AudioInConfig mAudioInConfig;
     private AudioOutConfig mAudioOutConfig;
     private AudioDeviceInfo mAudioInputDevice;
@@ -170,6 +171,8 @@ public class EmbeddedAssistant {
                             }
                         });
                         mMicrophoneMode = value.getDialogStateOut().getMicrophoneMode();
+                        mConversationCallback.onAssistantResponse(value.getDialogStateOut()
+                            .getSupplementalDisplayText());
                     }
                     if (value.getAudioOut() != null) {
                         if (mAudioOutSize <= value.getAudioOut().getSerializedSize()) {
@@ -317,6 +320,9 @@ public class EmbeddedAssistant {
                 if (mConversationState != null) {
                     dialogStateInBuilder.setConversationState(mConversationState);
                 }
+                if (mDeviceLocation != null) {
+                    dialogStateInBuilder.setDeviceLocation(mDeviceLocation);
+                }
                 dialogStateInBuilder.setLanguageCode(mLanguageCode);
                 assistConfigBuilder.setDialogStateIn(dialogStateInBuilder.build());
                 mAssistantRequestObserver.onNext(
@@ -326,6 +332,30 @@ public class EmbeddedAssistant {
             }
         });
         mAssistantHandler.post(mStreamAssistantRequest);
+    }
+
+    public void startConversation(final String inputQuery) {
+        mRequestCallback.onRequestStart();
+        mAssistantHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAssistantRequestObserver = mAssistantService.assist(mAssistantResponseObserver);
+                AssistConfig.Builder assistConfigBuilder = AssistConfig.newBuilder()
+                    .setTextQuery(inputQuery)
+                    .setAudioOutConfig(mAudioOutConfig)
+                    .setDeviceConfig(mDeviceConfig);
+                DialogStateIn.Builder dialogStateInBuilder = DialogStateIn.newBuilder();
+                if (mConversationState != null) {
+                    dialogStateInBuilder.setConversationState(mConversationState);
+                }
+                dialogStateInBuilder.setLanguageCode(mLanguageCode);
+                assistConfigBuilder.setDialogStateIn(dialogStateInBuilder.build());
+                mAssistantRequestObserver.onNext(
+                    AssistRequest.newBuilder()
+                        .setConfig(assistConfigBuilder.build())
+                        .build());
+            }
+        });
     }
 
     /**
@@ -550,6 +580,11 @@ public class EmbeddedAssistant {
             return this;
         }
 
+        public Builder setDeviceLocation(DeviceLocation deviceLocation) {
+            mEmbeddedAssistant.mDeviceLocation = deviceLocation;
+            return this;
+        }
+
         /**
          * Returns an AssistantManager if all required parameters have been supplied.
          *
@@ -700,6 +735,13 @@ public class EmbeddedAssistant {
          * @param parameters A JSONObject containing parameters related to this intent.
          */
         public void onDeviceAction(String intentName, JSONObject parameters) {}
+
+        /**
+         * Called when the response contains supplemental display text from the Assistant.
+         *
+         * @param response Supplemental display text.
+         */
+        public void onAssistantResponse(String response) {}
 
         /**
          * Called when the entire conversation is finished.
