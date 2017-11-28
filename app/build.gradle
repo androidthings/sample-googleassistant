@@ -17,18 +17,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion '25.0.2'
+    compileSdkVersion 26
+    buildToolsVersion '26.0.2'
 
     defaultConfig {
         applicationId "com.example.androidthings.assistant"
-        minSdkVersion 24
+        minSdkVersion 26
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
-        jackOptions {
-            enabled true
-        }
     }
     buildTypes {
         release {
@@ -44,13 +41,13 @@ android {
 }
 
 dependencies {
-    compile project(':grpc')
-    provided 'com.google.android.things:androidthings:0.5.1-devpreview'
+    implementation project(':grpc')
+    compileOnly 'com.google.android.things:androidthings:0.6-devpreview'
 
-    compile('com.google.auth:google-auth-library-oauth2-http:0.6.0') {
+    implementation('com.google.auth:google-auth-library-oauth2-http:0.6.0') {
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
 
-    compile 'com.google.android.things.contrib:driver-voicehat:0.2'
-    compile 'com.google.android.things.contrib:driver-button:0.4'
+    implementation 'com.google.android.things.contrib:driver-voicehat:0.2'
+    implementation 'com.google.android.things.contrib:driver-button:0.4'
 }

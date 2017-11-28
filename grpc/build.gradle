@@ -3,10 +3,10 @@ apply plugin: 'com.google.protobuf'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.0"
+    buildToolsVersion '26.0.2'
 
     defaultConfig {
-        minSdkVersion 24
+        minSdkVersion 26
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -50,10 +50,10 @@ protobuf {
 ext.protobufVersion = "1.2.0"
 
 dependencies {
-    compile "io.grpc:grpc-okhttp:$protobufVersion"
-    compile "io.grpc:grpc-protobuf-lite:$protobufVersion"
-    compile "io.grpc:grpc-stub:$protobufVersion"
-    compile "io.grpc:grpc-auth:$protobufVersion"
+    api "io.grpc:grpc-okhttp:$protobufVersion"
+    api "io.grpc:grpc-protobuf-lite:$protobufVersion"
+    api "io.grpc:grpc-stub:$protobufVersion"
+    api "io.grpc:grpc-auth:$protobufVersion"
 
-    compile 'javax.annotation:javax.annotation-api:1.2'
+    implementation 'javax.annotation:javax.annotation-api:1.2'
 }
