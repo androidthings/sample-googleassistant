@@ -1,19 +1,14 @@
 # Google Assistant API Sample for Android Things
 
-This sample shows how to call the Google Assistant API from Android Things using gRPC.
+This sample shows how to call the Google Assistant Service from Android Things using gRPC.
 
 It records a spoken request from the connected microphones, sends it to the Google Assistant API and plays back the Assistant's spoken response on the connected speaker.
-
-**Note**: This sample is for prototyping. We will later be launching the Google Assistant SDK for Android Things which will support hotwording and other features.
 
 ## Pre-requisites
 
 - Android Studio 2.2+.
 - Android Things compatible board.
-- If using [AIY Projects Voice Kit][voice-kit]:
-    - Android Things Raspberry Pi Dev Preview 5 image from the [Android Things Console][dev-preview-download].
-- If using Android Things: supported [microphone][mic] and [speaker][speaker].
-    - set `AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE = false` in `AssistantActivity.java`
+- [AIY Projects Voice Kit][voice-kit] or supported [microphone][mic] and [speaker][speaker] (See [audio configuration](#audio-configuration]).
 - [Google API Console Project][console].
 
 ## Run the sample
@@ -49,6 +44,25 @@ adb shell am start com.example.androidthings.assistant/.AssistantActivity
   - Press the button: recording starts.
   - Ask a question in the microphone. After your question is finished, recording will end.
   - The Google Assistant answer should playback on the speaker.
+
+## Audio Configuration
+
+By default the sample routes audio to the I2S Voice Hat on Raspberry Pi 3 and default audio on other boards (on-board Line out or HDMI/USB if connected).
+
+You can change those mappings by changing the `USE_VOICEHAT_I2S_DAC` constant or replacing the audio configuration in `AssitantActivity.OnCreate` with one of the following:
+```
+// Force using on-board Line out:
+audioInputDevice = findAudioDevice(AudioManager.GET_DEVICES_INPUTS, AudioDeviceInfo.TYPE_BUILTIN_MIC);
+audioOutputDevice = findAudioDevice(AudioManager.GET_DEVICES_OUTPUTS, AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
+
+// Force using USB:
+audioInputDevice = findAudioDevice(AudioManager.GET_DEVICES_INPUTS, AudioDeviceInfo.TYPE_USB_DEVICE);
+audioOutputDevice = findAudioDevice(AudioManager.GET_DEVICES_OUTPUTS, AudioDeviceInfo.TYPE_USB_DEVICE);
+
+// Force using I2S:
+audioInputDevice = findAudioDevice(AudioManager.GET_DEVICES_INPUTS, AudioDeviceInfo.TYPE_BUS);
+audioOutputDevice = findAudioDevice(AudioManager.GET_DEVICES_OUTPUTS, AudioDeviceInfo.TYPE_BUS);
+```
 
 ## License
 

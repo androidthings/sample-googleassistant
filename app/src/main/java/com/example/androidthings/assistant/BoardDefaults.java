@@ -16,13 +16,14 @@
 
 package com.example.androidthings.assistant;
 
+import android.media.AudioDeviceInfo;
 import android.os.Build;
 
 @SuppressWarnings("WeakerAccess")
 public class BoardDefaults {
-    private static final String DEVICE_RPI3 = "rpi3";
-    private static final String DEVICE_IMX6UL_PICO = "imx6ul_pico";
-    private static final String DEVICE_IMX7D_PICO = "imx7d_pico";
+    public static final String DEVICE_RPI3 = "rpi3";
+    public static final String DEVICE_IMX6UL_PICO = "imx6ul_pico";
+    public static final String DEVICE_IMX7D_PICO = "imx7d_pico";
 
     /**
      * Return the GPIO pin that the LED is connected on.
@@ -59,21 +60,9 @@ public class BoardDefaults {
     }
 
     /**
-     * Return the I2S Bus that the Voice Hat is connected to.
-     */
-    public static String getI2SDeviceForVoiceHat() {
-        switch (Build.DEVICE) {
-            case DEVICE_RPI3:
-                return "I2S1";
-            default:
-                throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
-        }
-    }
-
-    /**
      * Return the GPIO pin for the Voice Hat DAC trigger.
      */
-    public static String getGPIOForVoiceHatTrigger() {
+    public static String getGPIOForDacTrigger() {
         switch (Build.DEVICE) {
             case DEVICE_RPI3:
                 return "BCM16";

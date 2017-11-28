@@ -17,6 +17,7 @@
 package com.example.androidthings.assistant;
 
 import android.content.Context;
+import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
@@ -24,9 +25,9 @@ import android.media.MediaRecorder.AudioSource;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.google.assistant.embedded.v1alpha1.AudioInConfig;
-import com.google.assistant.embedded.v1alpha1.AudioInConfig.Encoding;
 import com.google.assistant.embedded.v1alpha1.AudioOutConfig;
 import com.google.assistant.embedded.v1alpha1.ConverseConfig;
 import com.google.assistant.embedded.v1alpha1.ConverseRequest;
@@ -44,6 +45,8 @@ import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+
 import org.json.JSONException;
 
 public class EmbeddedAssistant {
@@ -61,15 +64,21 @@ public class EmbeddedAssistant {
 
     // Assistant Thread and Runnables implementing the push-to-talk functionality.
     private ByteString mConversationState;
+    private AudioRecord mAudioRecord;
     private AudioInConfig mAudioInConfig;
     private AudioOutConfig mAudioOutConfig;
-    private AudioTrack mAudioTrack;
-    private AudioRecord mAudioRecord;
+    private AudioDeviceInfo mAudioInputDevice;
+    private AudioDeviceInfo mAudioOutputDevice;
+    private AudioFormat mAudioInputFormat;
+    private AudioFormat mAudioOutputFormat;
+    private int mAudioInputBufferSize;
+    private int mAudioOutputBufferSize;
     private int mVolume = 100; // Default to maximum volume.
 
     private MicrophoneMode mMicrophoneMode;
     private HandlerThread mAssistantThread;
     private Handler mAssistantHandler;
+    private ArrayList<ByteBuffer> mAssistantResponses = new ArrayList<>();
 
     // gRPC client and stream observers.
     private int mAudioOutSize; // Tracks the size of audio responses to determine when it ends.
@@ -78,7 +87,7 @@ public class EmbeddedAssistant {
     private StreamObserver<ConverseResponse> mAssistantResponseObserver =
             new StreamObserver<ConverseResponse>() {
                 @Override
-                public void onNext(ConverseResponse value) {
+                public void onNext(final ConverseResponse value) {
                     switch (value.getConverseResponseCase()) {
                         case EVENT_TYPE:
                             mConversationHandler.post(new Runnable() {
@@ -87,24 +96,14 @@ public class EmbeddedAssistant {
                                     mConversationCallback.onConversationEvent(value.getEventType());
                                 }
                             });
-                            if (value.getEventType() == EventType.END_OF_UTTERANCE) {
-                                mConversationHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        mConversationCallback.onResponseStarted();
-                                    }
-                                });
-                            }
                             break;
                         case RESULT:
                             // Update state.
                             mConversationState = value.getResult().getConversationState();
                             // Update volume.
                             if (value.getResult().getVolumePercentage() != 0) {
-                                int volumePercentage = value.getResult().getVolumePercentage();
+                                final int volumePercentage = value.getResult().getVolumePercentage();
                                 mVolume = volumePercentage;
-                                mAudioTrack.setVolume(AudioTrack.getMaxVolume()
-                                        * volumePercentage / 100.0f);
                                 mConversationHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
@@ -134,14 +133,7 @@ public class EmbeddedAssistant {
                             }
                             final ByteBuffer audioData =
                                     ByteBuffer.wrap(value.getAudioOut().getAudioData().toByteArray());
-                            mAudioTrack.write(audioData, audioData.remaining(),
-                                    AudioTrack.WRITE_BLOCKING);
-                            mConversationHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    mConversationCallback.onAudioSample(audioData);
-                                }
-                            });
+                            mAssistantResponses.add(audioData);
                             break;
                         case ERROR:
                             mConversationHandler.post(new Runnable() {
@@ -155,7 +147,7 @@ public class EmbeddedAssistant {
                 }
 
                 @Override
-                public void onError(Throwable t) {
+                public void onError(final Throwable t) {
                     mConversationHandler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -166,6 +158,38 @@ public class EmbeddedAssistant {
 
                 @Override
                 public void onCompleted() {
+                    // create a new AudioTrack to workaround audio routing issues.
+                    AudioTrack audioTrack = new AudioTrack.Builder()
+                            .setAudioFormat(mAudioOutputFormat)
+                            .setBufferSizeInBytes(mAudioOutputBufferSize)
+                            .setTransferMode(AudioTrack.MODE_STREAM)
+                            .build();
+                    if (mAudioOutputDevice != null) {
+                        audioTrack.setPreferredDevice(mAudioOutputDevice);
+                    }
+                    audioTrack.setVolume(AudioTrack.getMaxVolume() * mVolume / 100.0f);
+                    audioTrack.play();
+                    mConversationHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mConversationCallback.onResponseStarted();
+                        }
+                    });
+                    for (ByteBuffer audioData : mAssistantResponses) {
+                        final ByteBuffer buf = audioData;
+                        mConversationHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mConversationCallback.onAudioSample(buf);
+                            }
+                        });
+                        audioTrack.write(buf, buf.remaining(),
+                                AudioTrack.WRITE_BLOCKING);
+                    }
+                    mAssistantResponses.clear();
+                    audioTrack.stop();
+                    audioTrack.release();
+
                     mConversationHandler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -274,7 +298,6 @@ public class EmbeddedAssistant {
         });
 
         mAudioRecord.stop();
-        mAudioTrack.play();
         mConversationHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -298,10 +321,6 @@ public class EmbeddedAssistant {
         if (mAudioRecord != null) {
             mAudioRecord.stop();
             mAudioRecord = null;
-        }
-        if (mAudioTrack != null) {
-            mAudioTrack.stop();
-            mAudioTrack = null;
         }
     }
 
@@ -332,6 +351,28 @@ public class EmbeddedAssistant {
          */
         public Builder() {
             mEmbeddedAssistant = new EmbeddedAssistant();
+        }
+
+        /**
+         * Sets a preferred {@link AudioDeviceInfo} device for input.
+         *
+         * @param device The preferred audio device to acquire audio from.
+         * @return Returns this builder to allow for chaining.
+         */
+        public Builder setAudioInputDevice(AudioDeviceInfo device) {
+            mEmbeddedAssistant.mAudioInputDevice = device;
+            return this;
+        }
+
+        /**
+         * Sets a preferred {@link AudioDeviceInfo} device for output.
+         *
+         * param device The preferred audio device to route audio to.
+         * @return Returns this builder to allow for chaining.
+         */
+        public Builder setAudioOutputDevice(AudioDeviceInfo device) {
+            mEmbeddedAssistant.mAudioOutputDevice = device;
+            return this;
         }
 
         /**
@@ -458,36 +499,40 @@ public class EmbeddedAssistant {
                     .setVolumePercentage(mEmbeddedAssistant.mVolume)
                     .build();
 
-            // Construct AudioRecord & AudioTrack
-            AudioFormat audioFormatOutputMono = new AudioFormat.Builder()
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .setEncoding(audioEncoding)
-                    .setSampleRate(mSampleRate)
-                    .build();
-            int outputBufferSize = AudioTrack.getMinBufferSize(audioFormatOutputMono.getSampleRate(),
-                    audioFormatOutputMono.getChannelMask(),
-                    audioFormatOutputMono.getEncoding());
-            mEmbeddedAssistant.mAudioTrack = new AudioTrack.Builder()
-                    .setAudioFormat(audioFormatOutputMono)
-                    .setBufferSizeInBytes(outputBufferSize)
-                    .build();
-            mEmbeddedAssistant.mAudioTrack.setVolume(mEmbeddedAssistant.mVolume *
-                    AudioTrack.getMaxVolume() / 100.0f);
-            mEmbeddedAssistant.mAudioTrack.play();
-
-            AudioFormat audioFormatInputMono = new AudioFormat.Builder()
+            // Initialize Audio framework parameters.
+            mEmbeddedAssistant.mAudioInputFormat = new AudioFormat.Builder()
                     .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
                     .setEncoding(audioEncoding)
                     .setSampleRate(mSampleRate)
                     .build();
-            int inputBufferSize = AudioRecord.getMinBufferSize(audioFormatInputMono.getSampleRate(),
-                    audioFormatInputMono.getChannelMask(),
-                    audioFormatInputMono.getEncoding());
+            mEmbeddedAssistant.mAudioInputBufferSize = AudioRecord.getMinBufferSize(
+                    mEmbeddedAssistant.mAudioInputFormat.getSampleRate(),
+                    mEmbeddedAssistant.mAudioInputFormat.getChannelMask(),
+                    mEmbeddedAssistant.mAudioInputFormat.getEncoding());
+            mEmbeddedAssistant.mAudioOutputFormat = new AudioFormat.Builder()
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .setEncoding(audioEncoding)
+                    .setSampleRate(mSampleRate)
+                    .build();
+            mEmbeddedAssistant.mAudioOutputBufferSize = AudioTrack.getMinBufferSize(
+                    mEmbeddedAssistant.mAudioOutputFormat.getSampleRate(),
+                    mEmbeddedAssistant.mAudioOutputFormat.getChannelMask(),
+                    mEmbeddedAssistant.mAudioOutputFormat.getEncoding());
+
+
+            // create new AudioRecord to workaround audio routing issues.
             mEmbeddedAssistant.mAudioRecord = new AudioRecord.Builder()
                     .setAudioSource(AudioSource.VOICE_RECOGNITION)
-                    .setAudioFormat(audioFormatInputMono)
-                    .setBufferSizeInBytes(inputBufferSize)
+                    .setAudioFormat(mEmbeddedAssistant.mAudioInputFormat)
+                    .setBufferSizeInBytes(mEmbeddedAssistant.mAudioInputBufferSize)
                     .build();
+            if (mEmbeddedAssistant.mAudioInputDevice != null) {
+                boolean result = mEmbeddedAssistant.mAudioRecord.setPreferredDevice(
+                        mEmbeddedAssistant.mAudioInputDevice);
+                if (!result) {
+                    Log.e(TAG, "failed to set preferred input device");
+                }
+            }
 
             return mEmbeddedAssistant;
         }

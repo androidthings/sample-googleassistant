@@ -17,56 +17,54 @@
 package com.example.androidthings.assistant;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioDeviceInfo;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.preference.PreferenceManager;
 import android.util.Log;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
 import com.example.androidthings.assistant.EmbeddedAssistant.ConversationCallback;
 import com.example.androidthings.assistant.EmbeddedAssistant.RequestCallback;
+
 import com.google.android.things.contrib.driver.button.Button;
-import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.rpc.Status;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.List;
+
 import org.json.JSONException;
 
 public class AssistantActivity extends Activity implements Button.OnButtonEventListener {
     private static final String TAG = AssistantActivity.class.getSimpleName();
 
     // Peripheral and drivers constants.
-    private static final boolean AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE = true;
     private static final int BUTTON_DEBOUNCE_DELAY_MS = 20;
+    // Default on using the Voice Hat on Raspberry Pi 3.
+    private static final boolean USE_VOICEHAT_I2S_DAC = Build.DEVICE.equals(BoardDefaults.DEVICE_RPI3);
 
     // Audio constants.
     private static final String PREF_CURRENT_VOLUME = "current_volume";
     private static final int SAMPLE_RATE = 16000;
-    private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int DEFAULT_VOLUME = 100;
 
-    private static final AudioFormat AUDIO_FORMAT_STEREO =
-            new AudioFormat.Builder()
-                    .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
-                    .setEncoding(ENCODING)
-                    .setSampleRate(SAMPLE_RATE)
-                    .build();
     // Hardware peripherals.
-    private VoiceHat mVoiceHat;
     private Button mButton;
     private android.widget.Button mButtonWidget;
     private Gpio mLed;
+    private Gpio mDacTrigger;
 
     // List & adapter to store and display the history of Assistant Requests.
     private EmbeddedAssistant mEmbeddedAssistant;
@@ -77,6 +75,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i(TAG, "starting assistant demo");
+
 
         setContentView(R.layout.activity_main);
         ListView assistantRequestsListView = (ListView)findViewById(R.id.assistantRequestsListView);
@@ -92,33 +91,37 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             }
         });
 
-        try {
-            if (AUDIO_USE_I2S_VOICEHAT_IF_AVAILABLE) {
-                PeripheralManagerService pioService = new PeripheralManagerService();
-                List<String> i2sDevices = pioService.getI2sDeviceList();
-                if (i2sDevices.size() > 0) {
-                    try {
-                        Log.i(TAG, "creating voice hat driver");
-                        mVoiceHat = new VoiceHat(
-                                BoardDefaults.getI2SDeviceForVoiceHat(),
-                                BoardDefaults.getGPIOForVoiceHatTrigger(),
-                                AUDIO_FORMAT_STEREO
-                        );
-                        mVoiceHat.registerAudioInputDriver();
-                        mVoiceHat.registerAudioOutputDriver();
-                    } catch (IllegalStateException e) {
-                        Log.w(TAG, "Unsupported board, falling back on default audio device:", e);
-                    }
-                }
+
+        // Audio routing configuration: use default routing.
+        AudioDeviceInfo audioInputDevice = null;
+        AudioDeviceInfo audioOutputDevice = null;
+        if (USE_VOICEHAT_I2S_DAC) {
+            audioInputDevice = findAudioDevice(AudioManager.GET_DEVICES_INPUTS, AudioDeviceInfo.TYPE_BUS);
+            if (audioInputDevice == null) {
+                Log.e(TAG, "failed to find I2S audio input device, using default");
             }
+            audioOutputDevice = findAudioDevice(AudioManager.GET_DEVICES_OUTPUTS, AudioDeviceInfo.TYPE_BUS);
+            if (audioOutputDevice == null) {
+                Log.e(TAG, "failed to found I2S audio output device, using default");
+            }
+        }
+
+        try {
+            PeripheralManagerService pioService = new PeripheralManagerService();
+            if (USE_VOICEHAT_I2S_DAC) {
+                Log.i(TAG, "initializing DAC trigger");
+                mDacTrigger = pioService.openGpio(BoardDefaults.getGPIOForDacTrigger());
+                mDacTrigger.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            }
+
             mButton = new Button(BoardDefaults.getGPIOForButton(),
                     Button.LogicState.PRESSED_WHEN_LOW);
             mButton.setDebounceDelay(BUTTON_DEBOUNCE_DELAY_MS);
             mButton.setOnButtonEventListener(this);
-            PeripheralManagerService pioService = new PeripheralManagerService();
+
             mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
             mLed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-            mLed.setActiveType(Gpio.ACTIVE_LOW);
+            mLed.setActiveType(Gpio.ACTIVE_HIGH);
         } catch (IOException e) {
             Log.e(TAG, "error configuring peripherals:", e);
             return;
@@ -138,6 +141,8 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         }
         mEmbeddedAssistant = new EmbeddedAssistant.Builder()
                 .setCredentials(userCredentials)
+                .setAudioInputDevice(audioInputDevice)
+                .setAudioOutputDevice(audioOutputDevice)
                 .setAudioSampleRate(SAMPLE_RATE)
                 .setAudioVolume(initVolume)
                 .setRequestCallback(new RequestCallback() {
@@ -155,18 +160,40 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 })
                 .setConversationCallback(new ConversationCallback() {
                     @Override
+                    public void onResponseStarted() {
+                        if (mDacTrigger != null) {
+                            try {
+                                mDacTrigger.setValue(true);
+                                mLed.setValue(true);
+                            } catch (IOException e) {
+                                Log.e(TAG, "error enabling DAC", e);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onResponseFinished() {
+                        if (mDacTrigger != null) {
+                            try {
+                                mDacTrigger.setValue(false);
+                                mLed.setValue(false);
+                            } catch (IOException e) {
+                                Log.e(TAG, "error disabling DAC", e);
+                            }
+                        }
+                    }
+
+                    @Override
                     public void onConversationEvent(EventType eventType) {
                         Log.d(TAG, "converse response event: " + eventType);
                     }
 
                     @Override
                     public void onAudioSample(ByteBuffer audioSample) {
-                        if (mLed != null) {
-                            try {
-                                mLed.setValue(!mLed.getValue());
-                            } catch (IOException e) {
-                                Log.w(TAG, "error toggling LED:", e);
-                            }
+                        try {
+                            mLed.setValue(!mLed.getValue());
+                        } catch (IOException e) {
+                            Log.e(TAG, "error toggling LED", e);
                         }
                     }
 
@@ -177,7 +204,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
                     @Override
                     public void onError(Throwable throwable) {
-                        Log.e(TAG, "converse error:", throwable);
+                        Log.e(TAG, "converse error", throwable);
                         // Reset display
                         mButtonWidget.setText(R.string.button_retry);
                         mButtonWidget.setEnabled(true);
@@ -199,17 +226,21 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                         Log.i(TAG, "assistant conversation finished");
                         mButtonWidget.setText(R.string.button_new_request);
                         mButtonWidget.setEnabled(true);
-                        if (mLed != null) {
-                            try {
-                                mLed.setValue(false);
-                            } catch (IOException e) {
-                                Log.e(TAG, "error turning off LED:", e);
-                            }
-                        }
                     }
                 })
                 .build();
         mEmbeddedAssistant.connect();
+    }
+
+    private AudioDeviceInfo findAudioDevice(int deviceFlag, int deviceType) {
+        AudioManager manager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+        AudioDeviceInfo[] adis = manager.getDevices(deviceFlag);
+        for (AudioDeviceInfo adi : adis) {
+            if (adi.getType() == deviceType) {
+                return adi;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -246,15 +277,13 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             }
             mButton = null;
         }
-        if (mVoiceHat != null) {
+        if (mDacTrigger != null) {
             try {
-                mVoiceHat.unregisterAudioOutputDriver();
-                mVoiceHat.unregisterAudioInputDriver();
-                mVoiceHat.close();
+                mDacTrigger.close();
             } catch (IOException e) {
-                Log.w(TAG, "error closing voice hat driver", e);
+                Log.w(TAG, "error closing voice hat trigger", e);
             }
-            mVoiceHat = null;
+            mDacTrigger = null;
         }
         mEmbeddedAssistant.destroy();
     }
