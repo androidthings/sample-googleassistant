@@ -17,13 +17,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 27
     buildToolsVersion '26.0.2'
 
     defaultConfig {
         applicationId "com.example.androidthings.assistant"
-        minSdkVersion 26
-        targetSdkVersion 25
+        minSdkVersion 27
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0"
     }
@@ -44,4 +44,5 @@ dependencies {
     }
 
     implementation 'com.google.android.things.contrib:driver-button:0.4'
+    implementation 'com.google.android.things.contrib:driver-voicehat:0.4'
 }

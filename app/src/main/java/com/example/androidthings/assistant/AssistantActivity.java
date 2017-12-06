@@ -35,6 +35,8 @@ import com.example.androidthings.assistant.EmbeddedAssistant.ConversationCallbac
 import com.example.androidthings.assistant.EmbeddedAssistant.RequestCallback;
 
 import com.google.android.things.contrib.driver.button.Button;
+import com.google.android.things.contrib.driver.voicehat.Max98357A;
+import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.assistant.embedded.v1alpha1.ConverseResponse.EventType;
@@ -64,7 +66,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private Button mButton;
     private android.widget.Button mButtonWidget;
     private Gpio mLed;
-    private Gpio mDacTrigger;
+    private Max98357A mDac;
 
     // List & adapter to store and display the history of Assistant Requests.
     private EmbeddedAssistant mEmbeddedAssistant;
@@ -78,12 +80,12 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
 
         setContentView(R.layout.activity_main);
-        ListView assistantRequestsListView = (ListView)findViewById(R.id.assistantRequestsListView);
+        ListView assistantRequestsListView = findViewById(R.id.assistantRequestsListView);
         mAssistantRequestsAdapter =
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
                         mAssistantRequests);
         assistantRequestsListView.setAdapter(mAssistantRequestsAdapter);
-        mButtonWidget = (android.widget.Button) findViewById(R.id.assistantQueryButton);
+        mButtonWidget = findViewById(R.id.assistantQueryButton);
         mButtonWidget.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -107,19 +109,23 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         }
 
         try {
-            PeripheralManagerService pioService = new PeripheralManagerService();
             if (USE_VOICEHAT_I2S_DAC) {
                 Log.i(TAG, "initializing DAC trigger");
-                mDacTrigger = pioService.openGpio(BoardDefaults.getGPIOForDacTrigger());
-                mDacTrigger.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+                mDac = VoiceHat.openDac();
+                mDac.setSdMode(Max98357A.SD_MODE_SHUTDOWN);
+
+                mButton = VoiceHat.openButton();
+                mLed = VoiceHat.openLed();
+            } else {
+                PeripheralManagerService pioService = new PeripheralManagerService();
+                mButton = new Button(BoardDefaults.getGPIOForButton(),
+                    Button.LogicState.PRESSED_WHEN_LOW);
+                mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
             }
 
-            mButton = new Button(BoardDefaults.getGPIOForButton(),
-                    Button.LogicState.PRESSED_WHEN_LOW);
             mButton.setDebounceDelay(BUTTON_DEBOUNCE_DELAY_MS);
             mButton.setOnButtonEventListener(this);
 
-            mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
             mLed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mLed.setActiveType(Gpio.ACTIVE_HIGH);
         } catch (IOException e) {
@@ -161,9 +167,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 .setConversationCallback(new ConversationCallback() {
                     @Override
                     public void onResponseStarted() {
-                        if (mDacTrigger != null) {
+                        if (mDac != null) {
                             try {
-                                mDacTrigger.setValue(true);
+                                mDac.setSdMode(Max98357A.SD_MODE_LEFT);
                                 mLed.setValue(true);
                             } catch (IOException e) {
                                 Log.e(TAG, "error enabling DAC", e);
@@ -173,9 +179,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
                     @Override
                     public void onResponseFinished() {
-                        if (mDacTrigger != null) {
+                        if (mDac != null) {
                             try {
-                                mDacTrigger.setValue(false);
+                                mDac.setSdMode(Max98357A.SD_MODE_SHUTDOWN);
                                 mLed.setValue(false);
                             } catch (IOException e) {
                                 Log.e(TAG, "error disabling DAC", e);
@@ -277,13 +283,13 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             }
             mButton = null;
         }
-        if (mDacTrigger != null) {
+        if (mDac != null) {
             try {
-                mDacTrigger.close();
+                mDac.close();
             } catch (IOException e) {
                 Log.w(TAG, "error closing voice hat trigger", e);
             }
-            mDacTrigger = null;
+            mDac = null;
         }
         mEmbeddedAssistant.destroy();
     }
