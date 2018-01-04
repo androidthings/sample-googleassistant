@@ -49,7 +49,9 @@ adb shell am start com.example.androidthings.assistant/.AssistantActivity
 
 By default the sample routes audio to the I2S Voice Hat on Raspberry Pi 3 and default audio on other boards (on-board Line out or HDMI/USB if connected).
 
-You can change those mappings by changing the `USE_VOICEHAT_I2S_DAC` constant or replacing the audio configuration in `AssitantActivity.OnCreate` with one of the following:
+You can change those mappings by changing the `USE_VOICEHAT_I2S_DAC`
+constant or replacing the audio configuration in the `onCreate` method of [AssistantActivity](https://github.com/androidthings/sample-googleassistant/blob/master/app/src/main/java/com/example/androidthings/assistant/AssistantActivity.java) with one of the following:
+
 ```
 // Force using on-board Line out:
 audioInputDevice = findAudioDevice(AudioManager.GET_DEVICES_INPUTS, AudioDeviceInfo.TYPE_BUILTIN_MIC);
