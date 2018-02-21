@@ -47,7 +47,7 @@ protobuf {
     }
 }
 
-ext.protobufVersion = "1.2.0"
+ext.protobufVersion = "1.9.0"
 
 dependencies {
     api "io.grpc:grpc-okhttp:$protobufVersion"
