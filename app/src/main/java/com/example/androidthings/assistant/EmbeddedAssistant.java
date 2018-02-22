@@ -96,6 +96,9 @@ public class EmbeddedAssistant {
             new StreamObserver<AssistResponse>() {
                 @Override
                 public void onNext(final AssistResponse value) {
+                    if (DEBUG) {
+                        Log.d(TAG, value.toString());
+                    }
                     if (value.getDeviceAction() != null &&
                         !value.getDeviceAction().getDeviceRequestJson().isEmpty()) {
                         // Iterate through JSON object
