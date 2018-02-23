@@ -39,7 +39,7 @@ import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.voicehat.Max98357A;
 import com.google.android.things.contrib.driver.voicehat.VoiceHat;
 import com.google.android.things.pio.Gpio;
-import com.google.android.things.pio.PeripheralManagerService;
+import com.google.android.things.pio.PeripheralManager;
 import com.google.assistant.embedded.v1alpha2.SpeechRecognitionResult;
 import com.google.auth.oauth2.UserCredentials;
 
@@ -122,10 +122,10 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 mButton = VoiceHat.openButton();
                 mLed = VoiceHat.openLed();
             } else {
-                PeripheralManagerService pioService = new PeripheralManagerService();
+                PeripheralManager pioManager = PeripheralManager.getInstance();
                 mButton = new Button(BoardDefaults.getGPIOForButton(),
                     Button.LogicState.PRESSED_WHEN_LOW);
-                mLed = pioService.openGpio(BoardDefaults.getGPIOForLED());
+                mLed = pioManager.openGpio(BoardDefaults.getGPIOForLED());
             }
 
             mButton.setDebounceDelay(BUTTON_DEBOUNCE_DELAY_MS);
