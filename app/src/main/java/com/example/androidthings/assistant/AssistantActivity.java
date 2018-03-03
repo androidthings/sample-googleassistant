@@ -188,7 +188,7 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
                     @Override
                     public void onError(Throwable throwable) {
-                        Log.e(TAG, "assist error:", throwable);
+                        Log.e(TAG, "assist error: " + throwable.getMessage(), throwable);
                     }
 
                     @Override
