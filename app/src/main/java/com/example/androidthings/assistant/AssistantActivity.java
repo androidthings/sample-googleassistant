@@ -20,21 +20,19 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.media.AudioManager;
 import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
 import com.example.androidthings.assistant.EmbeddedAssistant.ConversationCallback;
 import com.example.androidthings.assistant.EmbeddedAssistant.RequestCallback;
-
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.voicehat.Max98357A;
 import com.google.android.things.contrib.driver.voicehat.VoiceHat;
@@ -42,11 +40,9 @@ import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManager;
 import com.google.assistant.embedded.v1alpha2.SpeechRecognitionResult;
 import com.google.auth.oauth2.UserCredentials;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-
 import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -63,6 +59,11 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private static final String PREF_CURRENT_VOLUME = "current_volume";
     private static final int SAMPLE_RATE = 16000;
     private static final int DEFAULT_VOLUME = 100;
+
+    // Assistant SDK constants.
+    private static final String DEVICE_MODEL_ID = "PLACEHOLDER";
+    private static final String DEVICE_INSTANCE_ID = "PLACEHOLDER";
+    private static final String LANGUAGE_CODE = "en-US";
 
     // Hardware peripherals.
     private Button mButton;
@@ -156,6 +157,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 .setAudioOutputDevice(audioOutputDevice)
                 .setAudioSampleRate(SAMPLE_RATE)
                 .setAudioVolume(initVolume)
+                .setDeviceModelId(DEVICE_MODEL_ID)
+                .setDeviceInstanceId(DEVICE_INSTANCE_ID)
+                .setLanguageCode(LANGUAGE_CODE)
                 .setRequestCallback(new RequestCallback() {
                     @Override
                     public void onRequestStart() {

@@ -74,15 +74,12 @@ Things board.
 Follow the guide [here](https://developers.google.com/assistant/sdk/guides/service/python/embed/register-device)
 to learn how to register your device.
 
-- After you register your device model and id, add it in `AssistantActivity`.
+- After you register your device model and id, replace the device model and instance
+ `PLACEHOLDER` values in `AssistantActivity`:
 
 ```Java
-        mEmbeddedAssistant = new EmbeddedAssistant.Builder()
-                ...
-                .setDeviceModelId("my-device-instance-id")
-                .setDeviceInstanceId("my-device-instance-id")
-                ...
-        ...
+        private static final String DEVICE_MODEL_ID = "my-device-model-id";
+        private static final String DEVICE_INSTANCE_ID = "my-device-instance-id";
 ```
 
 - Handle a Device Actions response if you get one.
