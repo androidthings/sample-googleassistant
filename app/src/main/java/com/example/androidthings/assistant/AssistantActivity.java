@@ -78,6 +78,10 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private ArrayList<String> mAssistantRequests = new ArrayList<>();
     private ArrayAdapter<String> mAssistantRequestsAdapter;
 
+    private String mDeviceInstanceId = "your device id";
+    private String mDeviceModelId = "your device model id";
+    private String mLanguageCode = "en-US";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -153,6 +157,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         }
         mEmbeddedAssistant = new EmbeddedAssistant.Builder()
                 .setCredentials(userCredentials)
+                .setDeviceInstanceId(mDeviceInstanceId)
+                .setDeviceModelId(mDeviceModelId)
+                .setLanguageCode(mLanguageCode)
                 .setAudioInputDevice(audioInputDevice)
                 .setAudioOutputDevice(audioOutputDevice)
                 .setAudioSampleRate(SAMPLE_RATE)
@@ -179,11 +186,22 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 })
                 .setConversationCallback(new ConversationCallback() {
                     @Override
+                    public void onResponseStarted() {
+                        if (mDac != null) {
+                            try {
+                                mDac.setSdMode(Max98357A.SD_MODE_LEFT);
+                                mLed.setValue(true);
+                            } catch (IOException e) {
+                                Log.e(TAG, "error enabling DAC", e);
+                            }
+                        }
+                    }
+
+                    @Override
                     public void onAudioSample(ByteBuffer audioSample) {
                         if (mLed != null) {
                             try {
-                                mDac.setSdMode(Max98357A.SD_MODE_SHUTDOWN);
-                                mLed.setValue(false);
+                                mLed.setValue(!mLed.getValue());
                             } catch (IOException e) {
                                 Log.e(TAG, "error disabling DAC", e);
                             }
