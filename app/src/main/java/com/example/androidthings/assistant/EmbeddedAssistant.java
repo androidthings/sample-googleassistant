@@ -54,6 +54,7 @@ import org.json.JSONObject;
 
 public class EmbeddedAssistant {
     private static final String TAG = EmbeddedAssistant.class.getSimpleName();
+    private static final String DEBUG_TAG = EmbeddedAssistant.class.getSimpleName() + ":Debug";
     private static final boolean DEBUG = false;
 
     private static final String ASSISTANT_API_ENDPOINT = "embeddedassistant.googleapis.com";
@@ -97,7 +98,7 @@ public class EmbeddedAssistant {
                 @Override
                 public void onNext(final AssistResponse value) {
                     if (DEBUG) {
-                        Log.d(TAG, value.toString());
+                        Log.d(DEBUG_TAG, value.toString());
                     }
                     if (value.getDeviceAction() != null &&
                         !value.getDeviceAction().getDeviceRequestJson().isEmpty()) {

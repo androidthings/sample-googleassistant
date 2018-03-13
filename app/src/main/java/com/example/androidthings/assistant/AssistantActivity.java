@@ -204,6 +204,13 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                                 Log.e(TAG, "error disabling DAC", e);
                             }
                         }
+                        if (mLed != null) {
+                            try {
+                                mLed.setValue(false);
+                            } catch (IOException e) {
+                                Log.e(TAG, "cannot turn off LED", e);
+                            }
+                        }
                     }
 
                     @Override
