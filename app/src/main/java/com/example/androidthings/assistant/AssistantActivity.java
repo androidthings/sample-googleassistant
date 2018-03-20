@@ -153,6 +153,9 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
         }
         mEmbeddedAssistant = new EmbeddedAssistant.Builder()
                 .setCredentials(userCredentials)
+                .setDeviceInstanceId(DEVICE_INSTANCE_ID)
+                .setDeviceModelId(DEVICE_MODEL_ID)
+                .setLanguageCode(LANGUAGE_CODE)
                 .setAudioInputDevice(audioInputDevice)
                 .setAudioOutputDevice(audioOutputDevice)
                 .setAudioSampleRate(SAMPLE_RATE)
@@ -179,13 +182,33 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 })
                 .setConversationCallback(new ConversationCallback() {
                     @Override
-                    public void onAudioSample(ByteBuffer audioSample) {
-                        if (mLed != null) {
+                    public void onResponseStarted() {
+                        super.onResponseStarted();
+                        // When bus type is switched, the AudioManager needs to reset the stream volume
+                        if (mDac != null) {
+                            try {
+                                mDac.setSdMode(Max98357A.SD_MODE_LEFT);
+                            } catch (IOException e) {
+                                Log.e(TAG, "error enabling DAC", e);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onResponseFinished() {
+                        super.onResponseFinished();
+                        if (mDac != null) {
                             try {
                                 mDac.setSdMode(Max98357A.SD_MODE_SHUTDOWN);
-                                mLed.setValue(false);
                             } catch (IOException e) {
                                 Log.e(TAG, "error disabling DAC", e);
+                            }
+                        }
+                        if (mLed != null) {
+                            try {
+                                mLed.setValue(false);
+                            } catch (IOException e) {
+                                Log.e(TAG, "cannot turn off LED", e);
                             }
                         }
                     }
@@ -215,12 +238,14 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
 
                     @Override
                     public void onAssistantResponse(final String response) {
-                        mMainHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mAssistantRequestsAdapter.add("Google Assistant: " + response);
-                            }
-                        });
+                        if(!response.isEmpty()) {
+                            mMainHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mAssistantRequestsAdapter.add("Google Assistant: " + response);
+                                }
+                            });
+                        }
                     }
 
                     public void onDeviceAction(String intentName, JSONObject parameters) {
