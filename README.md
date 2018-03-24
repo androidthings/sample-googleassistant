@@ -8,7 +8,7 @@ It records a spoken request from the connected microphones, sends it to the Goog
 
 - Android Studio 2.2+.
 - Android Things compatible board.
-- [AIY Projects Voice Kit][voice-kit] or supported [microphone][mic] and [speaker][speaker] (See [audio configuration](#audio-configuration]).
+- [AIY Projects Voice Kit][voice-kit] or supported [microphone][mic] and [speaker][speaker] (See [audio configuration](#audio-configuration)).
 - [Google API Console Project][console].
 
 ## Run the sample
