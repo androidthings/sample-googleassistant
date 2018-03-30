@@ -32,7 +32,7 @@ env/bin/google-oauthlib-tool --client-secrets client_secret_NNNN.json \
 - On the first install, grant the sample required permissions for audio and internet access:
 ```bash
 ./gradlew assembleDebug
-adb install -g app/build/outputs/apk/app-debug.apk
+adb install -g app/build/outputs/apk/debug/app-debug.apk
 ```
 - On Android Studio, click on the "Run" button or on the command line, type:
 ```bash
