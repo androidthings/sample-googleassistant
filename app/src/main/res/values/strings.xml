@@ -15,7 +15,7 @@
   limitations under the License.
   -->
 <resources>
-    <string name="app_name">Google Assistant API Sample</string>
+    <string name="app_name">Google Assistant Service Sample</string>
   <string name="button_new_request">New Request</string>
   <string name="button_retry">Retry</string>
   <string name="button_listening">Listening</string>
