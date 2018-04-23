@@ -1,8 +1,9 @@
-# Google Assistant API Sample for Android Things
+# Google Assistant API
 
-This sample shows how to call the Google Assistant Service from Android Things using gRPC.
-
-It records a spoken request from the connected microphones, sends it to the Google Assistant API and plays back the Assistant's spoken response on the connected speaker.
+This sample shows how to call the Google Assistant Service from Android Things
+using gRPC. It records a spoken request from the connected microphones, sends it
+to the Google Assistant API and plays back the Assistant's spoken response on
+the connected speaker.
 
 ## Pre-requisites
 
