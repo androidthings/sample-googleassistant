@@ -194,6 +194,15 @@ public class EmbeddedAssistant {
                             }
                         });
                     }
+                    if (value.hasScreenOut()) {
+                        mConversationHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mConversationCallback.onAssistantDisplayOut(
+                                    value.getScreenOut().getData().toStringUtf8());
+                            }
+                        });
+                    }
                 }
 
                 @Override
@@ -350,6 +359,9 @@ public class EmbeddedAssistant {
                 DialogStateIn.Builder dialogStateInBuilder = DialogStateIn.newBuilder();
                 if (mConversationState != null) {
                     dialogStateInBuilder.setConversationState(mConversationState);
+                }
+                if (mDeviceLocation != null) {
+                    dialogStateInBuilder.setDeviceLocation(mDeviceLocation);
                 }
                 dialogStateInBuilder.setLanguageCode(mLanguageCode);
                 assistConfigBuilder.setDialogStateIn(dialogStateInBuilder.build());
@@ -745,6 +757,13 @@ public class EmbeddedAssistant {
          * @param response Supplemental display text.
          */
         public void onAssistantResponse(String response) {}
+
+        /**
+         * Called when the response contains HTML output from the Assistant.
+         *
+         * @param html HTML data showing a rich response
+         */
+        public void onAssistantDisplayOut(String html) {}
 
         /**
          * Called when the entire conversation is finished.

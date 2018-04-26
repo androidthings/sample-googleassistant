@@ -26,10 +26,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.webkit.WebView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ListView;
 import com.example.androidthings.assistant.EmbeddedAssistant.ConversationCallback;
 import com.example.androidthings.assistant.EmbeddedAssistant.RequestCallback;
@@ -41,7 +46,7 @@ import com.google.android.things.pio.PeripheralManager;
 import com.google.assistant.embedded.v1alpha2.SpeechRecognitionResult;
 import com.google.auth.oauth2.UserCredentials;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONException;
@@ -77,20 +82,33 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
     private EmbeddedAssistant mEmbeddedAssistant;
     private ArrayList<String> mAssistantRequests = new ArrayList<>();
     private ArrayAdapter<String> mAssistantRequestsAdapter;
+    private CheckBox mHtmlOutputCheckbox;
+    private WebView mWebView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i(TAG, "starting assistant demo");
 
-
         setContentView(R.layout.activity_main);
-        ListView assistantRequestsListView = findViewById(R.id.assistantRequestsListView);
+
+        final ListView assistantRequestsListView = findViewById(R.id.assistantRequestsListView);
         mAssistantRequestsAdapter =
-                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
-                        mAssistantRequests);
-        mMainHandler = new Handler(getMainLooper());
+            new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
+                mAssistantRequests);
         assistantRequestsListView.setAdapter(mAssistantRequestsAdapter);
+        mHtmlOutputCheckbox = findViewById(R.id.htmlOutput);
+        mHtmlOutputCheckbox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean useHtml) {
+                mWebView.setVisibility(useHtml ? View.VISIBLE : View.GONE);
+                assistantRequestsListView.setVisibility(useHtml ? View.GONE : View.VISIBLE);
+            }
+        });
+        mWebView = findViewById(R.id.webview);
+        mWebView.getSettings().setJavaScriptEnabled(true);
+
+        mMainHandler = new Handler(getMainLooper());
         mButtonWidget = findViewById(R.id.assistantQueryButton);
         mButtonWidget.setOnClickListener(new OnClickListener() {
             @Override
@@ -246,6 +264,25 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                                 }
                             });
                         }
+                    }
+
+                    @Override
+                    public void onAssistantDisplayOut(final String html) {
+                        mMainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // Need to convert to base64
+                                try {
+                                    final byte[] data = html.getBytes("UTF-8");
+                                    final String base64String =
+                                        Base64.encodeToString(data, Base64.DEFAULT);
+                                    mWebView.loadData(base64String, "text/html; charset=utf-8",
+                                        "base64");
+                                } catch (UnsupportedEncodingException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
                     }
 
                     public void onDeviceAction(String intentName, JSONObject parameters) {

@@ -20,8 +20,12 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="com.google.android.things.permission.USE_PERIPHERAL_IO" />
-    <application  android:label="@string/app_name">
-        <activity android:name=".AssistantActivity">
+
+    <application
+        android:label="@string/app_name">
+
+        <activity android:name=".AssistantActivity"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
