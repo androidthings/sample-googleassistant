@@ -17,13 +17,15 @@ back the Assistant's spoken response on the connected speaker.
 - Configure the Google API Console Project to use the [Google Assistant API][google-assistant-api-config].
 - Download `client_secret_NNNN.json` (type: `Other`) from the [credentials section of the Console][console-credentials].
 - Install the [`google-oauthlib-tool`][google-oauthlib-tool] in a [Python 3][python3] virtual environment:
-```
+
+```bash
 python3 -m venv env
 env/bin/python -m pip install --upgrade pip setuptools
 env/bin/pip install --upgrade google-auth-oauthlib[tool]
 ```
 - Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate credentials:
-```
+
+```bash
 env/bin/google-oauthlib-tool --client-secrets client_secret_NNNN.json \
                              --credentials app/src/main/res/raw/credentials.json \
                              --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
@@ -31,11 +33,14 @@ env/bin/google-oauthlib-tool --client-secrets client_secret_NNNN.json \
 ```
 - Make sure to set the [Activity Controls][set-activity-controls] for the Google Account using the application.
 - On the first install, grant the sample required permissions for audio and internet access:
+
 ```bash
 ./gradlew assembleDebug
 adb install -g app/build/outputs/apk/debug/app-debug.apk
 ```
+
 - On Android Studio, click on the "Run" button or on the command line, type:
+
 ```bash
 ./gradlew installDebug
 adb shell am start com.example.androidthings.assistant/.AssistantActivity
@@ -53,7 +58,7 @@ By default the sample routes audio to the I2S Voice Hat on Raspberry Pi 3 and de
 You can change those mappings by changing the `USE_VOICEHAT_I2S_DAC`
 constant or replacing the audio configuration in the `onCreate` method of [AssistantActivity](https://github.com/androidthings/sample-googleassistant/blob/master/app/src/main/java/com/example/androidthings/assistant/AssistantActivity.java) with one of the following:
 
-```
+```Java
 // Force using on-board Line out:
 audioInputDevice = findAudioDevice(AudioManager.GET_DEVICES_INPUTS, AudioDeviceInfo.TYPE_BUILTIN_MIC);
 audioOutputDevice = findAudioDevice(AudioManager.GET_DEVICES_OUTPUTS, AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
@@ -79,34 +84,34 @@ to learn how to register your device.
  `PLACEHOLDER` values in `AssistantActivity`:
 
 ```Java
-        private static final String DEVICE_MODEL_ID = "my-device-model-id";
-        private static final String DEVICE_INSTANCE_ID = "my-device-instance-id";
+private static final String DEVICE_MODEL_ID = "my-device-model-id";
+private static final String DEVICE_INSTANCE_ID = "my-device-instance-id";
 ```
 
 - Handle a Device Actions response if you get one.
 
 ```Java
-        mEmbeddedAssistant = new EmbeddedAssistant.Builder()
-                ...
-                .setConversationCallback(new ConversationCallback() {
-                    ...
-                    @Override
-                    public void onDeviceAction(String intentName, JSONObject parameters) {
-                        // Check the type of command
-                        if (intentName.equals("action.devices.commands.OnOff")) {
-                            try {
-                                boolean turnOn = parameters.getBoolean("on");
-                                mLed.setValue(turnOn);
-                            } catch (JSONException e) {
-                                Log.e(TAG, "Cannot get value of command", e);
-                            } catch (IOException e) {
-                                Log.e(TAG, "Cannot set value of LED", e);
-                            }
-                        }
-                    }
-                }
-                ...
+mEmbeddedAssistant = new EmbeddedAssistant.Builder()
+    ...
+    .setConversationCallback(new ConversationCallback() {
         ...
+        @Override
+        public void onDeviceAction(String intentName, JSONObject parameters) {
+            // Check the type of command
+            if (intentName.equals("action.devices.commands.OnOff")) {
+                try {
+                    boolean turnOn = parameters.getBoolean("on");
+                    mLed.setValue(turnOn);
+                } catch (JSONException e) {
+                    Log.e(TAG, "Cannot get value of command", e);
+                } catch (IOException e) {
+                    Log.e(TAG, "Cannot set value of LED", e);
+                }
+            }
+        }
+    }
+    ...
+...
 ```
 
 Try it:
