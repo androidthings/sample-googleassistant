@@ -14,9 +14,10 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -26,6 +27,7 @@
     android:paddingTop="16dp"
     tools:context=".AssistantActivity">
     <LinearLayout
+        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:gravity="center_horizontal"
         android:id="@+id/controls"
@@ -44,17 +46,14 @@
             android:text="HTML Output"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:orientation="horizontal"
+    <FrameLayout
         android:id="@+id/assistantRequestsLayout"
-        android:layout_below="@id/controls"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
+        android:layout_height="0dp"
+        android:layout_weight="1">
         <ListView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
             android:id="@+id/assistantRequestsListView"
             android:transcriptMode="normal" />
 
@@ -63,7 +62,6 @@
             android:layout_width="match_parent"
             android:visibility="gone"
             android:layout_height="match_parent" />
+    </FrameLayout>
 
-    </LinearLayout>
-
-</RelativeLayout>
+</LinearLayout>
