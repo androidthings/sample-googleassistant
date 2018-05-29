@@ -178,9 +178,6 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
                 .setAudioOutputDevice(audioOutputDevice)
                 .setAudioSampleRate(SAMPLE_RATE)
                 .setAudioVolume(initVolume)
-                .setDeviceModelId(DEVICE_MODEL_ID)
-                .setDeviceInstanceId(DEVICE_INSTANCE_ID)
-                .setLanguageCode(LANGUAGE_CODE)
                 .setRequestCallback(new RequestCallback() {
                     @Override
                     public void onRequestStart() {
