@@ -14,19 +14,21 @@ back the Assistant's spoken response on the connected speaker.
 
 ## Run the sample
 
-- Configure the Google API Console Project to use the [Google Assistant API][google-assistant-api-config].
-- Download `client_secret_NNNN.json` (type: `Other`) from the [credentials section of the Console][console-credentials].
-- Install the [`google-oauthlib-tool`][google-oauthlib-tool] in a [Python 3][python3] virtual environment:
+1. Create or open a project in the [Actions Console](http://console.actions.google.com)
+1. Follow the instructions to [register a device model](https://developers.google.com/assistant/sdk/guides/service/python/embed/register-device)
+  1. Download `credentials.json`
+1. Install the [`google-oauthlib-tool`](https://github.com/GoogleCloudPlatform/google-auth-library-python-oauthlib) in a [Python 3](https://www.python.org/downloads/) virtual environment:
 
-```bash
+```
 python3 -m venv env
 env/bin/python -m pip install --upgrade pip setuptools
 env/bin/pip install --upgrade google-auth-oauthlib[tool]
 ```
-- Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate credentials:
+
+- Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate user credentials:
 
 ```bash
-env/bin/google-oauthlib-tool --client-secrets client_secret_NNNN.json \
+env/bin/google-oauthlib-tool --client-secrets credentials.json \
                              --credentials app/src/main/res/raw/credentials.json \
                              --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
                              --save
