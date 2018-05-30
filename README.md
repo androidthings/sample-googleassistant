@@ -23,15 +23,16 @@ back the Assistant's spoken response on the connected speaker.
 python3 -m venv env
 env/bin/python -m pip install --upgrade pip setuptools
 env/bin/pip install --upgrade google-auth-oauthlib[tool]
+source env/bin/activate
 ```
 
 - Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate user credentials:
 
 ```bash
-env/bin/google-oauthlib-tool --client-secrets credentials.json \
-                             --credentials app/src/main/res/raw/credentials.json \
-                             --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
-                             --save
+google-oauthlib-tool --client-secrets credentials.json \
+                     --credentials app/src/main/res/raw/credentials.json \
+                     --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
+                     --save
 ```
 - Make sure to set the [Activity Controls][set-activity-controls] for the Google Account using the application.
 - On the first install, grant the sample required permissions for audio and internet access:
