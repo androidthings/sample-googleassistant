@@ -24,6 +24,7 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder.AudioSource;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import com.google.assistant.embedded.v1alpha2.AssistConfig;
@@ -37,6 +38,7 @@ import com.google.assistant.embedded.v1alpha2.DeviceLocation;
 import com.google.assistant.embedded.v1alpha2.DialogStateIn;
 import com.google.assistant.embedded.v1alpha2.DialogStateOut.MicrophoneMode;
 import com.google.assistant.embedded.v1alpha2.EmbeddedAssistantGrpc;
+import com.google.assistant.embedded.v1alpha2.ScreenOutConfig;
 import com.google.assistant.embedded.v1alpha2.SpeechRecognitionResult;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.protobuf.ByteString;
@@ -45,6 +47,8 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +86,7 @@ public class EmbeddedAssistant {
     private int mAudioInputBufferSize;
     private int mAudioOutputBufferSize;
     private int mVolume = 100; // Default to maximum volume.
+    private ScreenOutConfig mScreenOutConfig;
 
     private MicrophoneMode mMicrophoneMode;
     private HandlerThread mAssistantThread;
@@ -328,6 +333,9 @@ public class EmbeddedAssistant {
                         .setAudioInConfig(mAudioInConfig)
                         .setAudioOutConfig(mAudioOutConfig)
                         .setDeviceConfig(mDeviceConfig);
+                if (mScreenOutConfig != null) {
+                    assistConfigBuilder.setScreenOutConfig(mScreenOutConfig);
+                }
                 DialogStateIn.Builder dialogStateInBuilder = DialogStateIn.newBuilder();
                 if (mConversationState != null) {
                     dialogStateInBuilder.setConversationState(mConversationState);
@@ -353,9 +361,10 @@ public class EmbeddedAssistant {
             public void run() {
                 mAssistantRequestObserver = mAssistantService.assist(mAssistantResponseObserver);
                 AssistConfig.Builder assistConfigBuilder = AssistConfig.newBuilder()
-                    .setTextQuery(inputQuery)
-                    .setAudioOutConfig(mAudioOutConfig)
-                    .setDeviceConfig(mDeviceConfig);
+                        .setTextQuery(inputQuery)
+                        .setAudioOutConfig(mAudioOutConfig)
+                        .setDeviceConfig(mDeviceConfig)
+                        .setScreenOutConfig(mScreenOutConfig);
                 DialogStateIn.Builder dialogStateInBuilder = DialogStateIn.newBuilder();
                 if (mConversationState != null) {
                     dialogStateInBuilder.setConversationState(mConversationState);
@@ -395,6 +404,23 @@ public class EmbeddedAssistant {
                 mConversationCallback.onConversationFinished();
             }
         });
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({TEXT, HTML})
+    public @interface ResponseFormat {}
+    public static final int TEXT = 0;
+    public static final int HTML = 1;
+
+    /**
+     * Set desired assistant response format.
+     */
+    public void setResponseFormat(@ResponseFormat int format) {
+        mScreenOutConfig = ScreenOutConfig.newBuilder()
+                .setScreenMode(format == HTML
+                        ? ScreenOutConfig.ScreenMode.PLAYING
+                        : ScreenOutConfig.ScreenMode.SCREEN_MODE_UNSPECIFIED)
+                .build();
     }
 
     /**
@@ -652,7 +678,6 @@ public class EmbeddedAssistant {
                     mEmbeddedAssistant.mAudioOutputFormat.getChannelMask(),
                     mEmbeddedAssistant.mAudioOutputFormat.getEncoding());
 
-
             // create new AudioRecord to workaround audio routing issues.
             mEmbeddedAssistant.mAudioRecord = new AudioRecord.Builder()
                     .setAudioSource(AudioSource.VOICE_RECOGNITION)
@@ -672,6 +697,11 @@ public class EmbeddedAssistant {
                 .setDeviceId(mDeviceInstanceId)
                 .setDeviceModelId(mDeviceModelId)
                 .build();
+
+            // Construct default ScreenOutConfig
+            mEmbeddedAssistant.mScreenOutConfig = ScreenOutConfig.newBuilder()
+                    .setScreenMode(ScreenOutConfig.ScreenMode.SCREEN_MODE_UNSPECIFIED)
+                    .build();
 
             return mEmbeddedAssistant;
         }

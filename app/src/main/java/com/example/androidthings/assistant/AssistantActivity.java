@@ -103,6 +103,8 @@ public class AssistantActivity extends Activity implements Button.OnButtonEventL
             public void onCheckedChanged(CompoundButton compoundButton, boolean useHtml) {
                 mWebView.setVisibility(useHtml ? View.VISIBLE : View.GONE);
                 assistantRequestsListView.setVisibility(useHtml ? View.GONE : View.VISIBLE);
+                mEmbeddedAssistant.setResponseFormat(useHtml
+                        ? EmbeddedAssistant.HTML : EmbeddedAssistant.TEXT);
             }
         });
         mWebView = findViewById(R.id.webview);
