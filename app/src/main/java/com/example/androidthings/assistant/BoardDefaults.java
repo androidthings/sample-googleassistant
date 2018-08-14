@@ -22,7 +22,7 @@ import android.os.Build;
 @SuppressWarnings("WeakerAccess")
 public class BoardDefaults {
     public static final String DEVICE_RPI3 = "rpi3";
-    public static final String DEVICE_IMX6UL_PICO = "imx6ul_pico";
+    public static final String DEVICE_RPI3BP = "rpi3bp";
     public static final String DEVICE_IMX7D_PICO = "imx7d_pico";
 
     /**
@@ -33,9 +33,8 @@ public class BoardDefaults {
     public static String getGPIOForLED() {
         switch (Build.DEVICE) {
             case DEVICE_RPI3:
+            case DEVICE_RPI3BP:
                 return "BCM25";
-            case DEVICE_IMX6UL_PICO:
-                return "GPIO4_IO22";
             case DEVICE_IMX7D_PICO:
                 return "GPIO2_IO02";
             default:
@@ -49,9 +48,8 @@ public class BoardDefaults {
     public static String getGPIOForButton() {
         switch (Build.DEVICE) {
             case DEVICE_RPI3:
+            case DEVICE_RPI3BP:
                 return "BCM23";
-            case DEVICE_IMX6UL_PICO:
-                return "GPIO2_IO03";
             case DEVICE_IMX7D_PICO:
                 return "GPIO6_IO14";
             default:
@@ -65,6 +63,7 @@ public class BoardDefaults {
     public static String getGPIOForDacTrigger() {
         switch (Build.DEVICE) {
             case DEVICE_RPI3:
+            case DEVICE_RPI3BP:
                 return "BCM16";
             default:
                 throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
