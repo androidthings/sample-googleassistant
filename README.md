@@ -16,7 +16,7 @@ back the Assistant's spoken response on the connected speaker.
 
 1. Create or open a project in the [Actions Console](http://console.actions.google.com)
 1. Follow the instructions to [register a device model](https://developers.google.com/assistant/sdk/guides/service/python/embed/register-device)
-  1. Download `credentials.json`
+  1. Download `client_secret_XXXX.json`
 1. Install the [`google-oauthlib-tool`](https://github.com/GoogleCloudPlatform/google-auth-library-python-oauthlib) in a [Python 3](https://www.python.org/downloads/) virtual environment:
 
 ```
@@ -29,7 +29,7 @@ source env/bin/activate
 - Use the [`google-oauthlib-tool`][google-oauthlib-tool] to generate user credentials:
 
 ```bash
-google-oauthlib-tool --client-secrets credentials.json \
+google-oauthlib-tool --client-secrets client_secret_XXXX.json \
                      --credentials app/src/main/res/raw/credentials.json \
                      --scope https://www.googleapis.com/auth/assistant-sdk-prototype \
                      --save
