@@ -5,6 +5,10 @@ from Android Things using gRPC. It records a spoken request from the
 connected microphones, sends it to the Google Assistant API and plays
 back the Assistant's spoken response on the connected speaker.
 
+> **Note:** The Android Things Console will be turned down for non-commercial
+> use on January 5, 2022. For more details, see the
+> [FAQ page](https://developer.android.com/things/faq).
+
 ## Pre-requisites
 
 - Android Studio 2.2+.
